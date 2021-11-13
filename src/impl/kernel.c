@@ -32,8 +32,11 @@ void kernel_start(struct stivale2_struct* stivale)
    pci_entry_t* controller = pci_get_function(0x1, 0x6, 1);
    if(controller == 0x0)
    {
-       debug_write("No AHCI controller found!", 25);
+       debug_write(TEXT("No AHCI controller found!\n"));
    }
+
+   //outport32(0xCF8, (uint32_t)((1 << 31) | (0x1F << 11)));
+   //debug_number(inport32(0xCFC));
 
    while(1)
    {
