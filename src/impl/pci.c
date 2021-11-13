@@ -26,16 +26,13 @@ void check_function(uint8_t bus, uint8_t device, uint8_t function)
     func->num.device = device;
     func->num.function = function;
 
-    debug_write("Registered PCI device at: ", 26);
-    itoah(bus, msg_buffer);
-    debug_write(msg_buffer, 16);
-    debug_write(" : ", 3);
-    itoah(device, msg_buffer);
-    debug_write(msg_buffer, 16);
-    debug_write(" : ", 3);
-    itoah(function, msg_buffer);
-    debug_write(msg_buffer, 16);
-    debug_write("\n", 1);
+    debug_write(TEXT("Registered PCI device at: "));
+    debug_number(bus);
+    debug_write(TEXT(" : "));
+    debug_number(device);
+    debug_write(TEXT(" : "));
+    debug_number(function);
+    debug_newl();
 
     func->header.vendor             = PCI_READ(0);
     func->header.device             = PCI_READ(2);
