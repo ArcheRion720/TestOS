@@ -11,8 +11,6 @@
 #include "memory/vmm.h"
 #include "pci.h"
 
-#define TEXT(x) x, sizeof(x)-1
-
 void kernel_start(struct stivale2_struct* stivale)
 {
    init_terminal(stivale);
@@ -35,7 +33,6 @@ void kernel_start(struct stivale2_struct* stivale)
    if(controller == 0x0)
    {
        debug_write("No AHCI controller found!", 25);
-       return;
    }
 
    while(1)

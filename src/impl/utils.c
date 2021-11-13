@@ -1,6 +1,6 @@
 #include "utils.h"
 
-static char* hexDict = "0123456789ABCDEF";
+const char* hexDict = "0123456789ABCDEF";
 
 void itoah(uint64_t value, char* buffer)
 {
