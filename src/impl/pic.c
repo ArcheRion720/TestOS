@@ -20,6 +20,7 @@ void pic_init()
     io_wait();
 
     outport8(PIC_MASTER_DATA, 0xFD);
+    debug_write(TEXT("Initialised PIC\n"));
 }
 
 void pic_send_eoi(uint8_t irq)

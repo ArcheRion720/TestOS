@@ -19,6 +19,8 @@ void init_intdt()
 
     __asm__("lidt %0" :: "m"(ptr));
     __asm__("sti");
+
+    debug_write(TEXT("Initialised interrupts\n"));
 }
 
 void register_intdt(uint32_t code, uint64_t addr)

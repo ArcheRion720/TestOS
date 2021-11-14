@@ -97,6 +97,7 @@ void init_pci()
 {
     pci = (pci_t*)alloc_block_adjacent(sizeof(pci_t) / 0x1000);
     check_bus(0);
+    debug_write(TEXT("Initialised PCI at bus 0\n"));
 }
 
 #undef PCI_READ

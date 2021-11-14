@@ -42,7 +42,8 @@ uint16_t inport16(uint16_t portId)
 
 uint32_t inport32(uint16_t portId)
 {
-    uint16_t result;
+    //big thanks to qookei for noticing there was uint16_t
+    uint32_t result;
     __asm__ ("inl %%dx, %%eax": "=a"(result) :"d"(portId));
     return result;
 }

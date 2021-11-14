@@ -58,7 +58,7 @@ void* alloc_block_adjacent(uint64_t count)
                 head = next->next;
             }
 
-            for(int i = 0; i < count; i++)
+            for(uint64_t i = 0; i < count; i++)
             {
                 clear_page((uintptr_t)result + (uintptr_t)(i * 0x1000));
             }
@@ -95,18 +95,20 @@ void init_memory_manager(struct stivale2_struct* stivale)
 
             if(last_mem_entry == NULL)
             {
-                head = HIGHER_HALF((uintptr_t)current_mem_entry);
+                head = (struct memory_entry_header*)HIGHER_HALF((uintptr_t)current_mem_entry);
             }
             else
             {
-                last_mem_entry->next = HIGHER_HALF((uintptr_t)current_mem_entry);
+                last_mem_entry->next = (struct memory_entry_header*)HIGHER_HALF((uintptr_t)current_mem_entry);
             }
 
-            last_mem_entry = HIGHER_HALF((uintptr_t)current_mem_entry);
+            last_mem_entry = (struct memory_entry_header*)HIGHER_HALF((uintptr_t)current_mem_entry);
 
             memory_block_count++;
         }
     }
+
+    debug_write(TEXT("Initialised physical memory\n"));
 }
 
 uint32_t getUsableMemoryRegionCount()

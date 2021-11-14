@@ -1,7 +1,7 @@
 #include "debug.h"
 
 void (*term_ptr)(const char* string, size_t length);
-const char handy_buffer[128];
+char handy_buffer[128];
 
 void init_terminal(struct stivale2_struct* stivale)
 {
@@ -14,6 +14,7 @@ void init_terminal(struct stivale2_struct* stivale)
     }
 
     term_ptr = terminal_tag->term_write;
+    term_ptr(TEXT("Initialised debug temrinal\n"));
 }
 
 void debug_write(const char* string, size_t length)

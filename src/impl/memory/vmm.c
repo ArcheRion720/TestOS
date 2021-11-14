@@ -75,4 +75,6 @@ void init_virtual_memory_manager()
     {
         kernel_mappings[i] = table->entries[i + 256];
     }
+
+    debug_write(TEXT("Initialised virtual memory\n"));
 }

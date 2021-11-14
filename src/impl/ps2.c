@@ -11,6 +11,7 @@ void init_keyboard()
 {
     register_intdt(33, (uint64_t)keyboard_ISR);
     keyboard_status = 1;
+    debug_write(TEXT("Initialised PS2\n"));
 }
 
 uint8_t keyboard_enabled()
