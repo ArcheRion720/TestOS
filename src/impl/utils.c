@@ -1,4 +1,5 @@
 #include "utils.h"
+#include "rtc.h"
 
 const char* hexDict = "0123456789ABCDEF";
 

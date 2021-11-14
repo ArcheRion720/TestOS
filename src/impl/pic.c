@@ -19,7 +19,8 @@ void pic_init()
     outport8(PIC_SLAVE_DATA, ICW4_8086);
     io_wait();
 
-    outport8(PIC_MASTER_DATA, 0xFD);
+    outport8(PIC_MASTER_DATA, 0x1);
+    outport8(PIC_SLAVE_DATA, 0x0);
     debug_write(TEXT("Initialised PIC\n"));
 }
 

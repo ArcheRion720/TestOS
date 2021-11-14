@@ -10,6 +10,7 @@
 #include "memory/pmm.h"
 #include "memory/vmm.h"
 #include "pci.h"
+#include "rtc.h"
 
 void initialize(struct stivale2_struct* stivale)
 {
@@ -21,4 +22,5 @@ void initialize(struct stivale2_struct* stivale)
     init_virtual_memory_manager(stivale);    
     init_graphics(stivale);
     init_pci();
+    init_rtc();
 }
