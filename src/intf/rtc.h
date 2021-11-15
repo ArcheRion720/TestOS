@@ -18,6 +18,8 @@
 
 #define RTC_BIN(data) (data & 0x04)
 
+#define BCD_MASK 0x0F0F0F0F0F0F0F0F
+
 struct time
 {
     uint8_t century; //unused

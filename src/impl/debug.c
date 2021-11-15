@@ -44,9 +44,9 @@ void format_time(time_t time, char* buffer)
     uint8_t temp;
     //dd:mm:yyyy hh:mm:ss 
     FORMAT_TIME_2(0, time.day_month);
-    buffer[2] = ':';
+    buffer[2] = '.';
     FORMAT_TIME_2(3, time.month);
-    buffer[5] = ':';
+    buffer[5] = '.';
     buffer[6] = '2';
     buffer[7] = '0';
     FORMAT_TIME_2(8, time.year);

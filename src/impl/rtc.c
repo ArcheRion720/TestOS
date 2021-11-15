@@ -24,29 +24,33 @@ void write_rtc(uint8_t reg, uint8_t value)
     outport8(0x71, value);
 }
 
-void rtc_handler()
+time_t read_time()
 {
-    if(binary_read)
+    union
     {
-        boot_time.year = read_rtc(RTC_REGISTER_YEAR);
-        boot_time.month = read_rtc(RTC_REGISTER_MONTH);
-        boot_time.day_month = read_rtc(RTC_REGISTER_DAY_MONTH);
-        boot_time.day_week = read_rtc(RTC_REGISTER_DAY_WEEK);
-        boot_time.hour = read_rtc(RTC_REGISTER_HOUR);
-        boot_time.minute = read_rtc(RTC_REGISTER_MINUTE);
-        boot_time.second = read_rtc(RTC_REGISTER_SECOND);
-    }
-    else
+        time_t time; 
+        uint64_t ltime;
+    } result;
+
+    result.time.year = read_rtc(RTC_REGISTER_YEAR);
+    result.time.month = read_rtc(RTC_REGISTER_MONTH);
+    result.time.day_month = read_rtc(RTC_REGISTER_DAY_MONTH);
+    result.time.day_week = read_rtc(RTC_REGISTER_DAY_WEEK);
+    result.time.hour = read_rtc(RTC_REGISTER_HOUR);
+    result.time.minute = read_rtc(RTC_REGISTER_MINUTE);
+    result.time.second = read_rtc(RTC_REGISTER_SECOND);
+
+    if(!binary_read)
     {
-        boot_time.year = read_rtc_bcd(RTC_REGISTER_YEAR);
-        boot_time.month = read_rtc_bcd(RTC_REGISTER_MONTH);
-        boot_time.day_month = read_rtc_bcd(RTC_REGISTER_DAY_MONTH);
-        boot_time.day_week = read_rtc_bcd(RTC_REGISTER_DAY_WEEK);
-        boot_time.hour = read_rtc_bcd(RTC_REGISTER_HOUR);
-        boot_time.minute = read_rtc_bcd(RTC_REGISTER_MINUTE);
-        boot_time.second = read_rtc_bcd(RTC_REGISTER_SECOND);
+        result.ltime = (((result.ltime >> 4) & BCD_MASK) * 10) + (result.ltime & BCD_MASK);
     }
 
+    return result.time;
+}
+
+void rtc_handler()
+{
+    boot_time = read_time();
     send_eoi(8);
 }
 

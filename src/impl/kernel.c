@@ -14,7 +14,6 @@ void kernel_start(struct stivale2_struct* stivale)
     debug_write(TEXT("Current time: "));
     debug_time(time);
 
-
     while(1)
     {
         asm("pause");
