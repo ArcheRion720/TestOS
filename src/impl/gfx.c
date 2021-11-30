@@ -25,18 +25,18 @@ void init_graphics(struct stivale2_struct* stivale)
 
     if(consolas_font.magic[0] != PSF_MAGIC0 || consolas_font.magic[1] != PSF_MAGIC1)
     {
-        debug_write(TEXT("Loading font failed\n"));
+        printf("Loading font failed\n");
         asm("hlt");
     }
 
-    debug_write(TEXT("Loading font succeded\n"));
+    printf("Loading font succeded");
 
     if(consolas_font.mode & 0x02)
     {
-        debug_write(TEXT("Unicode Table included\n"));
+        printf(" - Unicode Table included");
     }
-
-    debug_write(TEXT("Initialised graphics\n"));
+    printf("\n");
+    printf("Initialised graphics\n");
 }
 
 void putchar(unsigned short int character, int cx, int cy, color_t foreground, color_t background)

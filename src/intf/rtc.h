@@ -1,7 +1,5 @@
 #pragma once
 #include <stdint.h>
-#include "hal.h"
-#include "intdt.h"
 
 #define RTC_24H 0x02
 #define RTC_UPDATE_INT 0x10

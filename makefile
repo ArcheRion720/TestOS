@@ -51,6 +51,7 @@ $(KERNEL): $(OBJ) $(OBJASM)
 .PHONY: setup
 setup:
 	mkdir -p build/memory
+	mkdir -p build/ahci
 	mkdir -p dist
 	mkdir -p iso_root
 

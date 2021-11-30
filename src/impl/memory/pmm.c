@@ -20,7 +20,6 @@ void* alloc_block_single()
     head = head->next;
 
     clear_page(addr);
-    //k_memset(addr, 0, 0x1000);
 
     return (void*)addr;
 }
@@ -81,6 +80,7 @@ void init_memory_manager(struct stivale2_struct* stivale)
 
     //Prepare and link memory page headers
 
+    uint64_t total_usable_memory;
     for(uint64_t i = 0; i < memory_map->entries; i++)
     {
         entry = &memory_map->memmap[i];
@@ -88,6 +88,8 @@ void init_memory_manager(struct stivale2_struct* stivale)
         if(entry->type != STIVALE2_MMAP_USABLE)
             continue;
 
+        printf("Found usable memory region (%ixq:%ixq)\n", entry->base, entry->base + entry->length);
+        total_usable_memory += entry->length;
         for(uintptr_t ptr = entry->base; ptr < (entry->base + entry->length); ptr += PAGE_SIZE)
         {
             current_mem_entry = (struct memory_entry_header*)ptr;
@@ -108,7 +110,7 @@ void init_memory_manager(struct stivale2_struct* stivale)
         }
     }
 
-    debug_write(TEXT("Initialised physical memory\n"));
+    printf("Initialised physical memory - available bytes: %iu \n", total_usable_memory);
 }
 
 uint32_t getUsableMemoryRegionCount()

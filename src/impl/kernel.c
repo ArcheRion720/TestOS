@@ -4,15 +4,13 @@ void kernel_start(struct stivale2_struct* stivale)
 {
     initialize(stivale);
 
-    //pci_entry_t* controller = pci_get_function(0x1, 0x6, 1);
-    //if(controller == 0x0)
-    //{
-    //    debug_write(TEXT("No AHCI controller found!\n"));
-    //}
-
-    time_t time = read_rtc_time();
-    debug_write(TEXT("Current time: "));
-    debug_time(time);
+    printf("Current time: %t\n", read_rtc_time());
+    printf("Test1: %iu\n", 423423);
+    printf("Test2: %ixb\n", 423423);
+    printf("Test3: %ixw\n", 423423);
+    printf("Test4: %ixd\n", 423423);
+    printf("Test5: %ixq\n", 423423);
+    printf("Test6: %iu %iu", 10, 20);
 
     while(1)
     {

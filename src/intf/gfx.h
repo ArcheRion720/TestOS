@@ -1,7 +1,5 @@
 #pragma once
 #include "bootloader.h"
-#include "memory.h"
-#include <limits.h>
 
 #define PSF_MAGIC0  0x36
 #define PSF_MAGIC1  0x04

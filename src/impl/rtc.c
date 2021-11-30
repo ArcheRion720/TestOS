@@ -1,4 +1,6 @@
 #include "rtc.h"
+#include "hal.h"
+#include "intdt.h"
 
 uint8_t binary_read;
 time_t boot_time;
@@ -9,13 +11,6 @@ uint8_t read_rtc(uint8_t reg)
 {
     outport8(0x70, reg);
     return inport8(0x71);
-}
-
-uint8_t read_rtc_bcd(uint8_t reg)
-{
-    outport8(0x70, reg);
-    uint8_t temp = inport8(0x71);
-    return ((temp >> 4) * 10) + (temp & 0x0F);
 }
 
 void write_rtc(uint8_t reg, uint8_t value)
@@ -68,6 +63,8 @@ void init_rtc()
 
     write_rtc(RTC_REGISTER_B, rtc_data);
     read_rtc(RTC_REGISTER_C);
+
+    printf("RTC clock initialised\n");
 }
 
 time_t read_rtc_time()

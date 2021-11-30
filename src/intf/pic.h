@@ -53,5 +53,5 @@
 #define PIC_ICW4_SFNM_NESTEDMODE 0x10
 #define PIC_ICW4_SFNM_NOTNESTED 0
 
-void pic_init();
+void init_pic();
 void pic_send_eoi(uint8_t irq);

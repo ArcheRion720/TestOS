@@ -1,4 +1,7 @@
 #include "ps2.h"
+#include "hal.h"
+#include "intdt.h"
+#include "utils.h"
 
 uint8_t lastKey = 0;
 uint8_t keyCache[256];
@@ -11,7 +14,7 @@ void init_keyboard()
 {
     register_intdt(33, (uint64_t)keyboard_ISR);
     keyboard_status = 1;
-    debug_write(TEXT("Initialised PS2\n"));
+    printf("Initialised PS2\n");
 }
 
 uint8_t keyboard_enabled()

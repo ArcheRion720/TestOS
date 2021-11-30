@@ -1,4 +1,7 @@
 #include "memory/vmm.h"
+#include "memory/pmm.h"
+#include "hal.h"
+#include "utils.h"
 
 page_table_directory_t kernel_mappings[256];
 page_table_t* page_level4_table;
@@ -76,5 +79,5 @@ void init_virtual_memory_manager()
         kernel_mappings[i] = table->entries[i + 256];
     }
 
-    debug_write(TEXT("Initialised virtual memory\n"));
+    printf("Initialised virtual memory\n");
 }

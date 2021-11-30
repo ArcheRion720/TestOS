@@ -1,6 +1,6 @@
 #include "pic.h"
 
-void pic_init()
+void init_pic()
 {
     outport8(PIC_MASTER_CMD, ICW1_INIT | ICW1_ICW4);
     io_wait();
@@ -21,7 +21,7 @@ void pic_init()
 
     outport8(PIC_MASTER_DATA, 0x1);
     outport8(PIC_SLAVE_DATA, 0x0);
-    debug_write(TEXT("Initialised PIC\n"));
+    printf("Initialised PIC\n");
 }
 
 void pic_send_eoi(uint8_t irq)

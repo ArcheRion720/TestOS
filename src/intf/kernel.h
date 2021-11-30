@@ -15,7 +15,7 @@
 void initialize(struct stivale2_struct* stivale)
 {
     init_terminal(stivale);
-    pic_init();
+    init_pic();
     init_intdt();
     init_keyboard();
     init_memory_manager(stivale);    

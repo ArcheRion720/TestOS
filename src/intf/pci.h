@@ -2,8 +2,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "hal.h"
-#include "memory/pmm.h"
 
 struct pci_num
 {

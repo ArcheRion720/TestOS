@@ -1,7 +1,5 @@
 #pragma once
 #include <stdint.h>
-#include "hal.h"
-#include "intdt.h"
 
 void init_keyboard();
 uint8_t keyboard_enabled();

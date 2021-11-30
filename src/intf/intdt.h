@@ -2,8 +2,7 @@
 #include <stdint.h>
 #include "debug.h"
 
-#pragma pack(push, 1)
-typedef struct
+struct idtr_descriptor
 {
     uint16_t offset015;
     uint16_t selector;
@@ -12,16 +11,15 @@ typedef struct
     uint16_t offset1631;
     uint32_t offset3263;
     uint32_t zerohigh;
-} idtr_descriptor_t;
-#pragma pack(pop)
+} __attribute__((packed));
+typedef struct idtr_descriptor idtr_descriptor_t;
 
-#pragma pack(push, 1)
-typedef struct
+struct idtr
 {
     uint16_t limit;
     uint64_t base;
-} idtr_t;
-#pragma pack(pop)
+} __attribute__((packed));
+typedef struct idtr idtr_t;
 
 void init_intdt();
 void register_intdt(uint32_t code, uint64_t addr);

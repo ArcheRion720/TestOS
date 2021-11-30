@@ -1,4 +1,7 @@
 #include "pci.h"
+#include "hal.h"
+#include "memory/pmm.h"
+#include "utils.h"
 
 static pci_t* pci;
 char msg_buffer[17];
@@ -26,13 +29,7 @@ void check_function(uint8_t bus, uint8_t device, uint8_t function)
     func->num.device = device;
     func->num.function = function;
 
-    debug_write(TEXT("Registered PCI device at: "));
-    debug_number(bus);
-    debug_write(TEXT(" : "));
-    debug_number(device);
-    debug_write(TEXT(" : "));
-    debug_number(function);
-    debug_newl();
+    printf("Registered PCI device at: %ixb:%ixb:%ixb (%ixw : %ixw)\n", bus, device, function, PCI_READ(0), PCI_READ(2));
 
     func->header.vendor             = PCI_READ(0);
     func->header.device             = PCI_READ(2);
@@ -91,13 +88,14 @@ void check_bus(uint8_t bus)
     {
         check_device(bus, device);
     }
+
+    printf("Initialised PCI at bus %iu\n", bus);
 }
 
 void init_pci()
 {
     pci = (pci_t*)alloc_block_adjacent(sizeof(pci_t) / 0x1000);
     check_bus(0);
-    debug_write(TEXT("Initialised PCI at bus 0\n"));
 }
 
 #undef PCI_READ

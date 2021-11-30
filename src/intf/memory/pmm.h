@@ -1,6 +1,6 @@
 #pragma once
 #include "bootloader.h"
-#include "debug.h"
+
 #define PAGE_SIZE 0x1000
 #define HIGHER_HALF(x) (x + 0xffff800000000000)
 
