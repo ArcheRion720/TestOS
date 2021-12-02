@@ -6,8 +6,6 @@
 #include "intdt.h"
 #include "hal.h"
 
-extern void ahci_ISR();
-
 hba_mem_t* ABAR;
 
 uint8_t get_port_type(volatile hba_port_t* port)
@@ -171,8 +169,6 @@ void init_ahci()
         printf("No AHCI controller found\n");
         return;
     }
-
-    //register_intdt(40, (uintptr_t)ahci_ISR);
 
     uintptr_t base = (uintptr_t)HIGHER_HALF(ahci_controller->header.bar[5]);
     ABAR = (hba_mem_t*)base;
