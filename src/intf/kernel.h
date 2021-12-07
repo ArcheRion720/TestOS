@@ -11,8 +11,8 @@
 #include "memory/vmm.h"
 #include "pci.h"
 #include "rtc.h"
-#include "ahci/ahci.h"
-#include "ahci/drive.h"
+#include "storage/ahci.h"
+#include "storage/drive.h"
 
 void initialize(struct stivale2_struct* stivale)
 {

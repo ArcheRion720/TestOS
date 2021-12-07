@@ -1,5 +1,6 @@
-#include "ahci/ahci.h"
-#include "ahci/drive.h"
+#include "storage/ahci.h"
+#include "storage/drive.h"
+#include "storage/gpt.h"
 #include "memory/vmm.h"
 #include "pci.h"
 #include "utils.h"
@@ -19,7 +20,13 @@ uint8_t get_port_type(volatile hba_port_t* port)
     if(ipm != HBA_PORT_IPM_ACTIVE)
         return AHCI_DEV_NULL;
 
-    return AHCI_DEV_SATA;
+    switch(port->sig)
+    {
+        case SATA_SIG_ATAPI:
+            return AHCI_DEV_SATAPI;
+        default: 
+            return AHCI_DEV_SATA;
+    }
 }
 
 int __attribute__((noinline)) find_command_slot(volatile hba_port_t* port)
@@ -55,7 +62,14 @@ uint8_t ahci_cmd(volatile hba_port_t* port, uint64_t lba, uint32_t count, uint16
     volatile hba_cmd_tbl_t* cmd_tbl = (hba_cmd_tbl_t*)HIGHER_HALF(tbl_addr);
     memset(cmd_tbl,0,sizeof(hba_cmd_tbl_t) + (cmd_header->prdtl-1)*sizeof(hba_prdt_entry_t));
 
+    //uintptr_t buf = ((uintptr_t)buffer) - 0xffffffff80000000;
+    //uintptr_t buf = ((uintptr_t)buffer) -   0xffff800000000000;
+
     uintptr_t buf = PHYS((uintptr_t)buffer);
+
+    //printf("Buffer in addr: %ixq\n", buffer);
+    //printf("Buffer addr: %ixq\n", buf);
+
     int i = 0;
     for(; i < cmd_header->prdtl - 1; i++)
     {
@@ -108,7 +122,7 @@ uint8_t ahci_cmd(volatile hba_port_t* port, uint64_t lba, uint32_t count, uint16
             break;
         
         if(port->is & HBA_PxIS_TFES)
-            return 0; //error r/w
+            return 0;
     }
 
     if(port->is & HBA_PxIS_TFES)
@@ -130,6 +144,39 @@ uint8_t ahci_read_drive(drive_t* drive, uint64_t lba, uint64_t count, uint8_t* b
     return ahci_cmd(port, lba, count, (uint16_t*)buffer, 0);
 }
 
+uint8_t detect_partition_table(drive_t* drive)
+{
+    gpt_t* gpt = (gpt_t*)drive->buffer;
+    if(!drive->read(drive, 0x0, 1, gpt))
+    {
+        drive->flags &= ~DRIVE_DEV_PART_TABLE;
+        return 0;
+    }
+
+    if(gpt->pmbr.boot_signature != 0xAA55)
+    {
+        drive->flags &= ~DRIVE_DEV_PART_TABLE;
+        printf("Invalid MBR signature at AHCI port %iu\n", drive->port);
+        return 0;
+    }
+
+    for(int i = 0; i < 4; i++)
+    {
+        if(gpt->pmbr.partitions[i].type == 0xEE)
+        {
+            drive->flags |= (DRIVE_DEV_PART_TABLE | DRIVE_DEV_GPT);
+            printf("Found GPT partition table at AHCI port %iu\n", drive->port);
+            return 1;
+        }
+    }
+
+    printf("Found MBR partition table at AHCI port %iu\n", drive->port);
+    drive->flags |= DRIVE_DEV_PART_TABLE;
+    drive->flags &= ~DRIVE_DEV_GPT;
+
+    return 2;
+}
+
 void probe_ports()
 {
     uint32_t pi = ABAR->pi;
@@ -149,12 +196,15 @@ void probe_ports()
                 str_cpy("SATA\0", &drive.label, 5);
 
                 drive.flags = 1;
-                drive.type = 0;
+                drive.type = 0x53415441;
 
                 drive.port = i;
                 drive.read = &ahci_read_drive;
                 drive.write = &ahci_write_drive;
+                drive.buffer = (uint8_t*)alloc_block_single();
 
+                detect_partition_table(&drive);
+                find_partitions(&drive);
                 register_drive(drive);
             }
         }

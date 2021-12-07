@@ -1,30 +1,31 @@
 #include "kernel.h"
+#include "storage/gpt.h"
 
 void kernel_start(struct stivale2_struct* stivale)
 {
     initialize(stivale);
 
     printf("Current time: %t\n", read_rtc_time());
-    printf("Test1: %iu\n", 423423);
-    printf("Test2: %ixb\n", 423423);
-    printf("Test3: %ixw\n", 423423);
-    printf("Test4: %ixd\n", 423423);
-    printf("Test5: %ixq\n", 423423);
-    printf("Test6: %iu %iu\n", 10, 20);
 
-    drive_t* drive = get_drive(0);
-    printf("Drive 0: %s\n", drive->label);
-
-    uint8_t testBuf[512];
-
-    if(drive->read(drive, 0x0, 1, testBuf))
+    for(int i = 0; i < get_drive_count(); i++)
     {
-        for(int i = 0; i < 512; i++)
+        drive_t* drive = get_drive(i);
+        printf("Drive %iu (%s):\n", i, drive->label);
+        for(int p = 0; p < drive->partition_count; p++)
         {
-            printf("%ixb", testBuf[i]);
+            partition_t part = drive->partitions[p];
+            if(part.flags & 1)
+            {
+                printf("\tPartition %iu: %s ", p, part.label);
+                if(part.flags & 2)
+                {
+                    printf("(RESERVED)");
+                }
+                printf("\n");
+            }
         }
     }
-    
+
     while(1)
     {
         asm("pause");

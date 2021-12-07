@@ -6,6 +6,7 @@
 //AHCI
 #define AHCI_DEV_NULL   0
 #define AHCI_DEV_SATA   1
+#define AHCI_DEV_SATAPI	2
 
 #define HBA_PORT_IPM_ACTIVE     1
 #define HBA_PORT_DET_PRESENT    3

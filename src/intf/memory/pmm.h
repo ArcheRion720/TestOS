@@ -2,7 +2,7 @@
 #include "bootloader.h"
 
 #define PAGE_SIZE 0x1000
-#define HIGHER_HALF(x) (x + 0xffff800000000000)
+#define HIGHER_HALF(x) ((x) + 0xffff800000000000)
 
 struct memory_entry_header
 {
