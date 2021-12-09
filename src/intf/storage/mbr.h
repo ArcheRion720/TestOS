@@ -6,9 +6,9 @@
 struct mbr_partition_entry
 {
     uint8_t flags;
-    uint32_t addr_start : 32;
+    uint32_t addr_start : 24;
     uint8_t type;
-    uint32_t addr_end : 32;
+    uint32_t addr_end : 24;
     uint32_t lba_addr;
     uint32_t sectors;
 } __attribute__((packed));

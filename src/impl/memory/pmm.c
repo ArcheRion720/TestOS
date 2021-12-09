@@ -88,7 +88,7 @@ void init_memory_manager(struct stivale2_struct* stivale)
         if(entry->type != STIVALE2_MMAP_USABLE)
             continue;
 
-        printf("Found usable memory region (%ixq:%ixq)\n", entry->base, entry->base + entry->length);
+        printf("Found usable memory region (%ixq:%ixq) [%iukB]\n", entry->base, entry->base + entry->length, entry->length/1024);
         total_usable_memory += entry->length;
         for(uintptr_t ptr = entry->base; ptr < (entry->base + entry->length); ptr += PAGE_SIZE)
         {

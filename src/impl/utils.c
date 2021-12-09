@@ -14,11 +14,11 @@ void str_cpy(uint8_t* src, uint8_t* dest, uint8_t count)
     }
 }
 
-void str_fill(uint8_t* str, uint8_t start, uint8_t end, uint8_t filler)
+void memset(uint8_t* addr, uint8_t value, uint64_t count)
 {
-    for(int i = start; i < end; i++)
+    for(uint64_t i = 0; i < count; i++)
     {
-        str[i] = filler;
+        addr[i] = value;
     }
 }
 
@@ -92,6 +92,7 @@ int vprintf(const char* format, va_list list)
 {
     int result = 0;
     uint8_t hex_mode = 0;
+    char* ptr = 0;
 
     for(int i = 0; format[i]; i++)
     {
@@ -134,6 +135,14 @@ int vprintf(const char* format, va_list list)
 
             case 't':
                 write_time(&buffer[result], &result, va_arg(list, time_t));
+                break;
+            case 's':
+                ptr = va_arg(list, char*);
+                while(*ptr)
+                {
+                    buffer[result++] = *ptr;
+                    ptr++;
+                }
                 break;
             
             default:
