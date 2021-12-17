@@ -63,7 +63,7 @@ uintptr_t get_page_address(page_table_directory_t* page)
 
 page_table_t* create_kernel_mapped_table()
 {
-    page_table_t* result = (page_table_t*)alloc_block_single();
+    page_table_t* result = (page_table_t*)malloc_page();
     for(uint16_t i = 0; i < 256; i++)
     {
         result->entries[i + 256] = kernel_mappings[i];

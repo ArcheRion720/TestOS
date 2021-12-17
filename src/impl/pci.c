@@ -94,7 +94,7 @@ void check_bus(uint8_t bus)
 
 void init_pci()
 {
-    pci = (pci_t*)alloc_block_adjacent(sizeof(pci_t) / 0x1000);
+    pci = (pci_t*)malloc(sizeof(pci_t));
     check_bus(0);
 }
 

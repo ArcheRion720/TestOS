@@ -22,8 +22,8 @@
     page_table_t* TABLE;                                                            \
     if(!(page_directory_entry & PAGE_PRESENT))                                      \
     {                                                                               \
-        TABLE = (page_table_t*)alloc_block_single();                                \
-        set_page_address(&page_directory_entry, PHYS((uintptr_t)TABLE));            \
+        TABLE = (page_table_t*)malloc_page();                                \
+        set_page_address(&page_directory_entry, (uintptr_t)TABLE);            \
         page_directory_entry |= (PAGE_PRESENT | PAGE_READ_WRITE);                   \
         CURRENT_TABLE->entries[INDEX] = page_directory_entry;                       \
     }                                                                               \

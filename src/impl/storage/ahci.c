@@ -65,21 +65,19 @@ uint8_t ahci_cmd(volatile hba_port_t* port, uint64_t lba, uint32_t count, uint16
     //uintptr_t buf = ((uintptr_t)buffer) - 0xffffffff80000000;
     //uintptr_t buf = ((uintptr_t)buffer) -   0xffff800000000000;
 
-    uintptr_t buf = PHYS((uintptr_t)buffer);
-
     //printf("Buffer in addr: %ixq\n", buffer);
     //printf("Buffer addr: %ixq\n", buf);
 
     int i = 0;
     for(; i < cmd_header->prdtl - 1; i++)
     {
-        cmd_tbl->prdt_entry[i].dba = (uint32_t)buf;
+        cmd_tbl->prdt_entry[i].dba = (uint32_t)buffer;
         cmd_tbl->prdt_entry[i].dbc = 0x2000 - 1;
         cmd_tbl->prdt_entry[i].i = 1;
-        buf += 4096;
+        buffer += 4096;
         count -= 16;
     }
-    cmd_tbl->prdt_entry[i].dba = (uint32_t)buf;
+    cmd_tbl->prdt_entry[i].dba = (uint32_t)buffer;
     cmd_tbl->prdt_entry[i].dbc = (count << 9) - 1;
     cmd_tbl->prdt_entry[i].i = 1;
 
@@ -201,7 +199,7 @@ void probe_ports()
                 drive.port = i;
                 drive.read = &ahci_read_drive;
                 drive.write = &ahci_write_drive;
-                drive.buffer = (uint8_t*)alloc_block_single();
+                drive.buffer = (uint8_t*)malloc_page();
 
                 detect_partition_table(&drive);
                 find_partitions(&drive);
