@@ -73,7 +73,7 @@ page_table_t* create_kernel_mapped_table()
 
 void init_virtual_memory_manager()
 {
-    page_table_t* table = (page_table_t*)HIGHER_HALF(read_cr3());
+    page_table_t* table = (page_table_t*)HIGH(read_cr3());
     for(uint16_t i = 0; i < 256; i++)
     {
         kernel_mappings[i] = table->entries[i + 256];

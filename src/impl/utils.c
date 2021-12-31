@@ -22,6 +22,14 @@ void memset(uint8_t* addr, uint8_t value, uint64_t count)
     }
 }
 
+void memcpy(uint8_t* src, uint8_t* dest, uint64_t count)
+{
+    while(count--)
+    {
+        *dest++ = *src++;
+    }
+}
+
 #define FORMAT_TIME(index, var)   \
     temp = var / 10;                \
     buffer[index] = '0' + temp;     \

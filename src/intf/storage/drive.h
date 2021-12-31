@@ -8,7 +8,11 @@
 #define PART_PRESENT    1
 #define PART_RESERVED   (1 << 1)
 
-typedef uint8_t (*drive_function)(struct drive*, uint64_t, uint64_t, uint8_t*);
+#define FS_NONE 0
+#define FS_EXT2 1
+
+typedef uint8_t (*drive_io_function)(struct drive*, uint64_t, uint64_t, uint8_t*);
+typedef uint8_t (*partition_function)(const char* directory);
 
 struct partition
 {
@@ -22,6 +26,8 @@ struct partition
     uint64_t lba_start;
     uint64_t lba_end;
     char label[32];
+
+    struct drive* drive;
 };
 
 typedef struct partition partition_t;
@@ -41,8 +47,8 @@ struct drive
     uint8_t partition_count;
     partition_t partitions[32];
 
-    drive_function read;
-    drive_function write;
+    drive_io_function read;
+    drive_io_function write;
     uint8_t* buffer;
 };
 
@@ -50,6 +56,6 @@ typedef struct drive drive_t;
 
 uint8_t get_drive_count();
 drive_t* get_drive(uint8_t index);
-void register_drive(drive_t drive);
+drive_t* register_drive();
 void register_partition(drive_t* drive, partition_t partition);
 void find_partitions(drive_t* drive);

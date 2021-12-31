@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include "macros.h"
 
 #define PAGE_PRESENT            0x001
 #define PAGE_READ_WRITE         0x002
@@ -14,8 +15,6 @@
 #define PAGE_NO_EXECUTE         1 << 63
 
 #define VIRT_ADDR_MASK          0x1FF
-#define PHYS(x)                 ((x) - 0xffff800000000000)
-#define HIGHER_HALF(x)          ((x) + 0xffff800000000000)
 
 #define SETUP_PAGE_LEVEL(TABLE, INDEX, CURRENT_TABLE)                               \
     page_directory_entry = CURRENT_TABLE->entries[INDEX];                           \

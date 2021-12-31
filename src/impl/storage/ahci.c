@@ -1,7 +1,7 @@
 #include "storage/ahci.h"
 #include "storage/drive.h"
 #include "storage/gpt.h"
-#include "memory/vmm.h"
+#include "macros.h"
 #include "pci.h"
 #include "utils.h"
 #include "intdt.h"
@@ -51,7 +51,7 @@ uint8_t ahci_cmd(volatile hba_port_t* port, uint64_t lba, uint32_t count, uint16
         return 0;
 
     uint64_t cmd_addr = ((uint64_t)port->clb) | (((uint64_t)port->clbu) << 32);
-    volatile hba_cmd_header_t* cmd_header = (hba_cmd_header_t*)HIGHER_HALF(cmd_addr);
+    volatile hba_cmd_header_t* cmd_header = (hba_cmd_header_t*)HIGH(cmd_addr);
     cmd_header += slot;
     cmd_header->cfl = sizeof(fis_reg_h2d_t)/sizeof(uint32_t);
     cmd_header->w = write;
@@ -59,7 +59,7 @@ uint8_t ahci_cmd(volatile hba_port_t* port, uint64_t lba, uint32_t count, uint16
     cmd_header->prdtl = (uint16_t)((count - 1) >> 4) + 1;
 
     uint64_t tbl_addr = ((uint64_t)cmd_header->ctba) | (((uint64_t)cmd_header->ctbau) << 32);
-    volatile hba_cmd_tbl_t* cmd_tbl = (hba_cmd_tbl_t*)HIGHER_HALF(tbl_addr);
+    volatile hba_cmd_tbl_t* cmd_tbl = (hba_cmd_tbl_t*)HIGH(tbl_addr);
     memset(cmd_tbl,0,sizeof(hba_cmd_tbl_t) + (cmd_header->prdtl-1)*sizeof(hba_prdt_entry_t));
 
     //uintptr_t buf = ((uintptr_t)buffer) - 0xffffffff80000000;
@@ -190,20 +190,17 @@ void probe_ports()
             if(type == AHCI_DEV_SATA)
             {
                 printf("Found SATA device at port %iu\n", i);
-                drive_t drive;
-                str_cpy("SATA\0", &drive.label, 5);
+                drive_t* drive = register_drive();
 
-                drive.flags = 1;
-                drive.type = 0x53415441;
-
-                drive.port = i;
-                drive.read = &ahci_read_drive;
-                drive.write = &ahci_write_drive;
-                drive.buffer = (uint8_t*)malloc_page();
-
-                detect_partition_table(&drive);
-                find_partitions(&drive);
-                register_drive(drive);
+                str_cpy("SATA\0", &drive->label, 5);
+                drive->flags = 1;
+                drive->type = 0x53415441;
+                drive->port = i;
+                drive->read = &ahci_read_drive;
+                drive->write = &ahci_write_drive;
+                drive->buffer = (uint8_t*)malloc_page();
+                detect_partition_table(drive);
+                find_partitions(drive);
             }
         }
     }
@@ -218,7 +215,7 @@ void init_ahci()
         return;
     }
 
-    uintptr_t base = (uintptr_t)HIGHER_HALF(ahci_controller->header.bar[5]);
+    uintptr_t base = (uintptr_t)HIGH(ahci_controller->header.bar[5]);
     ABAR = (hba_mem_t*)base;
 
     probe_ports();

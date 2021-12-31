@@ -1,6 +1,7 @@
 #include "memory/pmm.h"
 #include "utils.h"
 #include "bitset.h"
+#include "macros.h"
 
 uint16_t region_count;
 memory_region_t regions[1024];
@@ -22,17 +23,17 @@ void init_memory_manager(struct stivale2_struct* stivale)
         if(entry->type != STIVALE2_MMAP_USABLE)
             continue;
 
-        uint64_t blocks = entry->length / 0x2000;
-        uint64_t bmap_blocks = (255 * blocks) / 8;
-        bmap_blocks = (bmap_blocks + 0x1FFF) & ~0x1FFF;
-        bmap_blocks /= 0x2000;
+        uint64_t blocks = entry->length / PMM_HBLOCK_SIZE;
+        uint64_t bmap_blocks = (PMM_ENTRY_BITS * blocks) / 8;
+        bmap_blocks = ALIGN_UP(bmap_blocks, PMM_HBLOCK_SIZE); //(bmap_blocks + 0x1FFF) & ~0x1FFF;
+        bmap_blocks /= PMM_HBLOCK_SIZE;
         blocks -= bmap_blocks;
 
         if(blocks == 0)
             continue;
 
         regions[region_count].base = entry->base;
-        regions[region_count].alloc_base = entry->base + (bmap_blocks * 0x2000);
+        regions[region_count].alloc_base = entry->base + (bmap_blocks * PMM_HBLOCK_SIZE);
         regions[region_count].blocks = blocks;
         regions[region_count].bmap_reserved_blocks = bmap_blocks;
 
@@ -121,7 +122,7 @@ pmm_bitmap_iterator_t iterate_bitmap_top(uint64_t blocks)
 
 void set_bits_lower_order(memory_region_t* region, uint64_t order, uint64_t bit)
 {
-    if(order >= LOWEST_ORDER)
+    if(order >= PMM_LOWEST_ORD)
         return;
 
     SET_BIT((uint8_t*)region->base, (region->offsets[order + 1] + 2 * bit    ));
@@ -133,7 +134,7 @@ void set_bits_lower_order(memory_region_t* region, uint64_t order, uint64_t bit)
 
 void clear_bits_lower_order(memory_region_t* region, uint64_t order, uint64_t bit)
 {
-    if(order >= LOWEST_ORDER)
+    if(order >= PMM_LOWEST_ORD)
         return;
 
     CLEAR_BIT((uint8_t*)region->base, (region->offsets[order + 1] + 2 * bit    ));
@@ -153,7 +154,7 @@ void* malloc_span(uint64_t blocks)
         set_bits_lower_order(&regions[it.region], 0, bit);
     }
 
-    return (uint8_t*)regions[it.region].alloc_base + (it.rel_bit * 0x2000);
+    return (uint8_t*)regions[it.region].alloc_base + (it.rel_bit * PMM_HBLOCK_SIZE);
 }
 
 void* malloc(uint64_t size)
@@ -161,9 +162,10 @@ void* malloc(uint64_t size)
     if(size == 0)
         return 0;
 
-    if(size > HBLOCK_SIZE)
+    if(size > PMM_HBLOCK_SIZE)
     {
-        return malloc_span(((size + 0x1FFF) & ~0x1FFF) / 0x2000);
+        return malloc_span(ALIGN_UP(size, PMM_HBLOCK_SIZE) / PMM_HBLOCK_SIZE);
+        //return malloc_span(((size + 0x1FFF) & ~0x1FFF) / PMM_HBLOCK_SIZE);
     }
 
     size--;
@@ -190,7 +192,7 @@ void* malloc(uint64_t size)
 
     set_bits_lower_order(&regions[it.region], order, it.rel_bit);
 
-    return (uint8_t*)regions[it.region].alloc_base + (0x2000 / (1 << order) * it.rel_bit);
+    return (uint8_t*)regions[it.region].alloc_base + (PMM_HBLOCK_SIZE / (1 << order) * it.rel_bit);
 }
 
 void free_span(void* ptr, uint64_t blocks)
@@ -206,7 +208,7 @@ void free_span(void* ptr, uint64_t blocks)
         }
     }
 
-    uint64_t bit = (addr - regions[reg].alloc_base) / 0x2000;
+    uint64_t bit = (addr - regions[reg].alloc_base) / PMM_HBLOCK_SIZE;
     for(uint64_t i = 0; i < blocks; i++)
     {
         CLEAR_BIT((uint8_t*)regions[reg].base, bit);
@@ -216,9 +218,10 @@ void free_span(void* ptr, uint64_t blocks)
 
 void free(void* ptr, uint64_t size)
 {
-    if(size > HBLOCK_SIZE)
+    if(size > PMM_HBLOCK_SIZE)
     {
-        free_span(ptr, ((size + 0x1FFF) & ~0x1FFF) / 0x2000);
+        free_span(ptr, ALIGN_UP(size, PMM_HBLOCK_SIZE) / PMM_HBLOCK_SIZE);
+        //free_span(ptr, ((size + 0x1FFF) & ~0x1FFF) / PMM_HBLOCK_SIZE);
         return;
     }
 
@@ -240,7 +243,7 @@ void free(void* ptr, uint64_t size)
     }
 
     uint64_t blocks = regions[reg].blocks;
-    uint64_t bit = ((addr - regions[reg].alloc_base) * (1 << order)) / 0x2000;
+    uint64_t bit = ((addr - regions[reg].alloc_base) * (1 << order)) / PMM_HBLOCK_SIZE;
 
     CLEAR_BIT((uint8_t*)regions[reg].base, regions[reg].offsets[order] + bit);
     clear_bits_lower_order(&regions[reg], order, bit);
@@ -267,4 +270,25 @@ void* malloc_page()
 void free_page(void* ptr)
 {
     return free(ptr, 0x2000);
+}
+
+malloc_report_t malloc_ex(uint64_t size)
+{
+    malloc_report_t report;
+    if(size > PMM_HBLOCK_SIZE)
+    {
+        report.size = (ALIGN_UP(size, PMM_HBLOCK_SIZE));
+        report.data = malloc(size);
+        return report;
+    }
+
+    size--;
+    uint64_t order;
+    asm("bsr %1, %0" : "=r"(order) : "r"(size));
+    order = 12 - order;
+
+    report.size = PMM_HBLOCK_SIZE / (1 << order);
+    report.data = malloc(size);
+
+    return report;
 }

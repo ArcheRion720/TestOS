@@ -21,11 +21,12 @@ uint8_t get_drive_count()
 void register_partition(drive_t* drive, partition_t partition)
 {
     drive->partitions[drive->partition_count++] = partition;
+    //TODO: detect filesystem
 }
 
-void register_drive(drive_t drive)
+drive_t* register_drive()
 {
-    drives[drive_count++] = drive;
+    return &drives[drive_count++];
 }
 
 void find_partitions_mbr(drive_t* drive)
@@ -41,6 +42,7 @@ void find_partitions_mbr(drive_t* drive)
             part.flags |= 1;
             part.lba_start = mbr->partitions[i].lba_addr;
             part.lba_end = mbr->partitions[i].lba_addr + mbr->partitions[i].sectors;
+            part.drive = drive;
             str_cpy("Partition MBR\0", &part.label, 14);
             register_partition(drive, part);
         }
@@ -73,6 +75,7 @@ void find_partitions_gpt(drive_t* drive)
 
                 partition.lba_start = gpt_partition.lba_start;
                 partition.lba_end = gpt_partition.lba_end;
+                partition.drive = drive;
                 str_cpy("Partition GPT\0", &partition.label, 14);
                 register_partition(drive, partition);
             }
