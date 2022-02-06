@@ -79,5 +79,5 @@ void init_virtual_memory_manager()
         kernel_mappings[i] = table->entries[i + 256];
     }
 
-    printf("Initialised virtual memory\n");
+    log("Initialised virtual memory");
 }

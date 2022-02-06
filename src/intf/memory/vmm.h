@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#include "macros.h"
+#include "common.h"
 
 #define PAGE_PRESENT            0x001
 #define PAGE_READ_WRITE         0x002

@@ -1,5 +1,4 @@
 #include "gfx.h"
-#include "debug.h"
 #include "utils.h"
 
 static color_t* framebuffer;
@@ -25,18 +24,18 @@ void init_graphics(struct stivale2_struct* stivale)
 
     if(consolas_font.magic[0] != PSF_MAGIC0 || consolas_font.magic[1] != PSF_MAGIC1)
     {
-        printf("Loading font failed\n");
+        warn("Loading font failed");
         asm("hlt");
     }
 
-    printf("Loading font succeded");
+    log("Loading font succeded");
 
     if(consolas_font.mode & 0x02)
     {
-        printf(" - Unicode Table included");
+        printf("\t- Unicode Table included\n");
     }
-    printf("\n");
-    printf("Initialised graphics\n");
+
+    log("Initialised graphics");
 }
 
 void putchar(unsigned short int character, int cx, int cy, color_t foreground, color_t background)

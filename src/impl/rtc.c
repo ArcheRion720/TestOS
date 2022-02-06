@@ -1,6 +1,6 @@
 #include "rtc.h"
 #include "hal.h"
-#include "intdt.h"
+#include "interrupts.h"
 
 uint8_t binary_read;
 time_t boot_time;
@@ -51,7 +51,7 @@ void rtc_handler()
 
 void init_rtc()
 {
-    register_intdt(40, (uintptr_t)rtc_ISR);
+    register_isr_handler(40, (uintptr_t)&rtc_handler);
 
     uint8_t rtc_data;
     rtc_data = read_rtc(RTC_REGISTER_B);
@@ -64,7 +64,7 @@ void init_rtc()
     write_rtc(RTC_REGISTER_B, rtc_data);
     read_rtc(RTC_REGISTER_C);
 
-    printf("RTC clock initialised\n");
+    log("RTC clock initialised");
 }
 
 time_t read_rtc_time()

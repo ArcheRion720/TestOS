@@ -29,7 +29,7 @@ void check_function(uint8_t bus, uint8_t device, uint8_t function)
     func->num.device = device;
     func->num.function = function;
 
-    printf("Registered PCI device at: %ixb:%ixb:%ixb (%ixw : %ixw)\n", bus, device, function, PCI_READ(0), PCI_READ(2));
+    log("Registered PCI device at: %ixb:%ixb:%ixb (%ixw : %ixw)", bus, device, function, PCI_READ(0), PCI_READ(2));
 
     func->header.vendor             = PCI_READ(0);
     func->header.device             = PCI_READ(2);
@@ -89,7 +89,7 @@ void check_bus(uint8_t bus)
         check_device(bus, device);
     }
 
-    printf("Initialised PCI at bus %iu\n", bus);
+    log("Initialised PCI at bus %iu", bus);
 }
 
 void init_pci()

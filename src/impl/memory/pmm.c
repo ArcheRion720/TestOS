@@ -1,7 +1,7 @@
 #include "memory/pmm.h"
 #include "utils.h"
-#include "bitset.h"
-#include "macros.h"
+#include "common.h"
+#include "sync.h"
 
 uint16_t region_count;
 memory_region_t regions[1024];
@@ -44,6 +44,8 @@ void init_memory_manager(struct stivale2_struct* stivale)
 
         region_count++;
     }
+
+    ticket_lock_init(MEMORY_ALLOC_LOCK);
 }
 
 pmm_bitmap_iterator_t iterate_bitmap(uint64_t order)
@@ -159,13 +161,15 @@ void* malloc_span(uint64_t blocks)
 
 void* malloc(uint64_t size)
 {
+    ticket_lock_acquire(MEMORY_ALLOC_LOCK);
     if(size == 0)
         return 0;
 
     if(size > PMM_HBLOCK_SIZE)
     {
-        return malloc_span(ALIGN_UP(size, PMM_HBLOCK_SIZE) / PMM_HBLOCK_SIZE);
-        //return malloc_span(((size + 0x1FFF) & ~0x1FFF) / PMM_HBLOCK_SIZE);
+        void* result = malloc_span(ALIGN_UP(size, PMM_HBLOCK_SIZE) / PMM_HBLOCK_SIZE);
+        ticket_lock_release(MEMORY_ALLOC_LOCK);
+        return result;
     }
 
     size--;
@@ -175,7 +179,10 @@ void* malloc(uint64_t size)
 
     pmm_bitmap_iterator_t it = iterate_bitmap(order);
     if(!it.valid)
+    {
+        ticket_lock_release(MEMORY_ALLOC_LOCK);
         return 0;
+    }
 
     uint8_t* base = (uint8_t*)regions[it.region].base;
     uint64_t blocks = regions[it.region].blocks;
@@ -191,7 +198,7 @@ void* malloc(uint64_t size)
     }
 
     set_bits_lower_order(&regions[it.region], order, it.rel_bit);
-
+    ticket_lock_release(MEMORY_ALLOC_LOCK);
     return (uint8_t*)regions[it.region].alloc_base + (PMM_HBLOCK_SIZE / (1 << order) * it.rel_bit);
 }
 
@@ -218,10 +225,11 @@ void free_span(void* ptr, uint64_t blocks)
 
 void free(void* ptr, uint64_t size)
 {
+    ticket_lock_acquire(MEMORY_ALLOC_LOCK);
     if(size > PMM_HBLOCK_SIZE)
     {
         free_span(ptr, ALIGN_UP(size, PMM_HBLOCK_SIZE) / PMM_HBLOCK_SIZE);
-        //free_span(ptr, ((size + 0x1FFF) & ~0x1FFF) / PMM_HBLOCK_SIZE);
+        ticket_lock_release(MEMORY_ALLOC_LOCK);
         return;
     }
 
@@ -260,6 +268,7 @@ void free(void* ptr, uint64_t size)
         ibit /= 2;
         CLEAR_BIT((uint8_t*)regions[reg - 1].base, ibit);
     }
+    ticket_lock_release(MEMORY_ALLOC_LOCK);
 }
 
 void* malloc_page()

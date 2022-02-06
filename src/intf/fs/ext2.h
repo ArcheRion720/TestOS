@@ -1,5 +1,8 @@
 #pragma once
 #include "storage/drive.h"
+#include "common.h"
+#include "string.h"
+#include "fs/fs.h"
 
 struct ext2_super_block
 {
@@ -98,15 +101,17 @@ struct directory_entry
 {
     uint32_t inode;
     uint16_t size;
-    union
-    {
-        uint16_t name_length;
-        struct
-        {
-            uint8_t name_length_low;
-            uint8_t type;
-        };
-    };
+    // union
+    // {
+    //     uint16_t name_length;
+    //     struct
+    //     {
+    //         uint8_t name_length_low;
+    //         uint8_t type;
+    //     };
+    // };
+    uint8_t name_length;
+    uint8_t type;
     uint8_t name[];
 } __attribute__ ((packed));
 typedef struct directory_entry directory_entry_t;
@@ -122,3 +127,4 @@ typedef struct ext2_payload ext2_fs_t;
 
 uint8_t discover_ext2_fs(drive_t* drive);
 ext2_super_block_t read_super_block(partition_t* part);
+//bool_t query_subnode(inode_t* pinode, string_t search, file_system_t* fs, uint32_t* pindex);

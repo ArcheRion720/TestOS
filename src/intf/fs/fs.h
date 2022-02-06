@@ -1,8 +1,9 @@
 #pragma once
 #include "storage/drive.h"
+#include "string.h"
 
 //TODO: some return type
-typedef void (*fs_function)(const char* path, struct file_system*);
+typedef void (*fs_function)(string_t path, struct file_system*);
 
 struct file_system
 {
@@ -11,6 +12,7 @@ struct file_system
 
     fs_function read;
     fs_function write;
+    fs_function list;
 };
 typedef struct file_system file_system_t;
 

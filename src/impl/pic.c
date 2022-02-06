@@ -19,9 +19,9 @@ void init_pic()
     outport8(PIC_SLAVE_DATA, ICW4_8086);
     io_wait();
 
-    outport8(PIC_MASTER_DATA, 0x1);
+    outport8(PIC_MASTER_DATA, 0x0);
     outport8(PIC_SLAVE_DATA, 0x0);
-    printf("Initialised PIC\n");
+    log("Initialised PIC");
 }
 
 void pic_send_eoi(uint8_t irq)

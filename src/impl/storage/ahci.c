@@ -1,10 +1,10 @@
 #include "storage/ahci.h"
 #include "storage/drive.h"
 #include "storage/gpt.h"
-#include "macros.h"
+#include "common.h"
 #include "pci.h"
 #include "utils.h"
-#include "intdt.h"
+#include "interrupts.h"
 #include "hal.h"
 
 hba_mem_t* ABAR;
@@ -154,7 +154,7 @@ uint8_t detect_partition_table(drive_t* drive)
     if(gpt->pmbr.boot_signature != 0xAA55)
     {
         drive->flags &= ~DRIVE_DEV_PART_TABLE;
-        printf("Invalid MBR signature at AHCI port %iu\n", drive->port);
+        warn("Invalid MBR signature at AHCI port %iu", drive->port);
         return 0;
     }
 
@@ -163,12 +163,12 @@ uint8_t detect_partition_table(drive_t* drive)
         if(gpt->pmbr.partitions[i].type == 0xEE)
         {
             drive->flags |= (DRIVE_DEV_PART_TABLE | DRIVE_DEV_GPT);
-            printf("Found GPT partition table at AHCI port %iu\n", drive->port);
+            log("Found GPT partition table at AHCI port %iu", drive->port);
             return 1;
         }
     }
 
-    printf("Found MBR partition table at AHCI port %iu\n", drive->port);
+    log("Found MBR partition table at AHCI port %iu", drive->port);
     drive->flags |= DRIVE_DEV_PART_TABLE;
     drive->flags &= ~DRIVE_DEV_GPT;
 
@@ -189,7 +189,7 @@ void probe_ports()
             uint8_t type = get_port_type(port);
             if(type == AHCI_DEV_SATA)
             {
-                printf("Found SATA device at port %iu\n", i);
+                log("Found SATA device at port %iu", i);
                 drive_t* drive = register_drive();
 
                 str_cpy("SATA\0", &drive->label, 5);

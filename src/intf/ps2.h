@@ -1,12 +1,13 @@
 #pragma once
 #include <stdint.h>
+#include "common.h"
 
 void init_keyboard();
 uint8_t keyboard_enabled();
 void keyboard_read_key();
 char keyboard_get_key();
 uint8_t keyboard_to_ascii(uint8_t);
-void keyboard_handler(void);
+void keyboard_handler(registers_t*);
 
 enum
 {

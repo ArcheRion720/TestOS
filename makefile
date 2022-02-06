@@ -45,8 +45,8 @@ RESOBJ := $(shell find res -name *.o)
 $(OBJASM): build/%.o : src/asm/%.asm
 	$(ASM) -f elf64 $(patsubst build/%.o, src/asm/%.asm, $@) -o $@
 
-$(KERNEL): $(OBJ) $(OBJASM)
-	$(LD) $(OBJ) $(OBJASM) $(RESOBJ) $(LDFLAGS) $(INTERNALLDFLAGS) -o dist/${@F}
+$(KERNEL): $(OBJASM) $(OBJ) 
+	$(LD) $(OBJASM) $(OBJ) $(RESOBJ) $(LDFLAGS) $(INTERNALLDFLAGS) -o dist/${@F}
 
 .PHONY: setup
 setup:

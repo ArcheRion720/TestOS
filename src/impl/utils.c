@@ -1,9 +1,12 @@
 #include "utils.h"
 #include "rtc.h"
-#include "debug.h"
+#include "terminal.h"
+#include "tasking.h"
 #include <stdarg.h>
 
-char buffer[256];
+#include "sync.h"
+
+// char buffer[256];
 const char* digits_dict = "0123456789ABCDEF";
 
 void str_cpy(uint8_t* src, uint8_t* dest, uint8_t count)
@@ -96,11 +99,14 @@ void write_int_dec(char* buffer, int* ptr, uint64_t value)
     while(value);
 }
 
+uint8_t buffer[256];
+
 int vprintf(const char* format, va_list list)
 {
     int result = 0;
     uint8_t hex_mode = 0;
     char* ptr = 0;
+    uint32_t length;
 
     for(int i = 0; format[i]; i++)
     {
@@ -145,28 +151,82 @@ int vprintf(const char* format, va_list list)
                 write_time(&buffer[result], &result, va_arg(list, time_t));
                 break;
             case 's':
-                ptr = va_arg(list, char*);
-                while(*ptr)
+                switch(format[i + 1])
                 {
-                    buffer[result++] = *ptr;
-                    ptr++;
+                    case '.':
+                        i++;
+                        ptr = va_arg(list, char*);
+                        length = va_arg(list, uint32_t);
+                        for(uint32_t i = 0; i < length; i++)
+                        {
+                            buffer[result++] = *ptr;
+                            ptr++;
+                        }
+                        break;
+                
+                    default:
+                        ptr = va_arg(list, char*);
+                        while(*ptr)
+                        {
+                            buffer[result++] = *ptr;
+                            ptr++;
+                        }
+                        break;
                 }
                 break;
-            
             default:
                 return 0;
         }
     }
 
-    debug_write(buffer, result);
+    terminal_write(buffer, result);
     return result;
 }
 
-int printf(const char* format, ...)
+int printf_ll(const char* format, ...)
 {
     va_list list;
     va_start(list, format);
     int i = vprintf(format, list);
     va_end(list);
+    return i;
+}
+
+int printf(const char* format, ...)
+{
+    ticket_lock_acquire(PRINT_LOCK);
+    va_list list;
+    va_start(list, format);
+    int i = vprintf(format, list);
+    va_end(list);
+    ticket_lock_release(PRINT_LOCK);
+    return i;
+}
+
+int log(const char* format, ...)
+{
+    ticket_lock_acquire(PRINT_LOCK);
+    printf_ll("\x1b[32;1m[INFO]\x1b[0m\t");
+    va_list list;
+    va_start(list, format);
+    int i = vprintf(format, list);
+    va_end(list);
+
+    terminal_write("\n", 1);
+    ticket_lock_release(PRINT_LOCK);
+    return i;
+}
+
+int warn(const char* format, ...)
+{
+    ticket_lock_acquire(PRINT_LOCK);
+    printf_ll("\x1b[33;1m[WARN]\x1b[0m\t");
+    va_list list;
+    va_start(list, format);
+    int i = vprintf(format, list);
+    va_end(list);
+
+    terminal_write("\n", 1);
+    ticket_lock_release(PRINT_LOCK);
     return i;
 }

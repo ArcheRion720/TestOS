@@ -1,9 +1,8 @@
 #include "fs/ext2.h"
-#include "fs/fs.h"
 #include "memory/pmm.h"
-#include "macros.h"
 #include "array.h"
 #include "utils.h"
+#include "string.h"
 
 void read_block(partition_t* part, uint64_t block, uint64_t block_size, uint8_t* buffer)
 {
@@ -40,32 +39,132 @@ inode_t read_inode(file_system_t* fs, uint32_t index)
     return result;
 }
 
-void read_test(const char* path, file_system_t* fs)
+bool_t query_subnode(inode_t* inode, string_t search, file_system_t* fs, uint32_t* pindex)
 {
-    //For testing purpose write contents of root directory
-    inode_t inode = read_inode(fs, 2);
-    
-    if(!(inode.type & 0x4000))
-        return;
+    if(!(inode->type & 0x4000))
+        return false;
 
     uint8_t* buffer = malloc(4096);
     for(int i = 0; i < 12; i++)
     {
-        if(inode.DBP[i] == 0)
+        if(inode->DBP[i] == 0)
             continue;
 
-        read_block(fs->partition, inode.DBP[i], 4096, buffer);
+        read_block(fs->partition, inode->DBP[i], 4096, buffer);
         directory_entry_t* dir_entry = (directory_entry_t*)buffer;
         while(1)
         {
             if(dir_entry->inode == 0)
                 break;
 
-            printf("\t- %s\n", dir_entry->name);
+            string_t str;
+            str.data = dir_entry->name;
+            str.length = dir_entry->name_length;
+
+            if(str_cmp(str, search))
+            {
+                if(pindex)
+                {
+                    *pindex = dir_entry->inode;
+                }
+                free(buffer, 4096);
+                return true;
+            }
+
             dir_entry = (directory_entry_t*)(((uint8_t*)dir_entry) + dir_entry->size);
         }
     }
     free(buffer, 4096);
+    return false;
+}
+
+void ext2_list_directory(inode_t* directory, file_system_t* fs)
+{
+    if(!(directory->type & 0x4000))
+        return;
+
+    uint8_t* buffer = malloc(4096);
+    for(uint32_t i = 0; i < 12; i++)
+    {
+        if(directory->DBP[i] == 0)
+            continue;
+
+        read_block(fs->partition, directory->DBP[i], 4096, buffer);
+        directory_entry_t* dir_entry = (directory_entry_t*)buffer;
+        while(1)
+        {
+            if(dir_entry->inode == 0)
+                break;
+
+            string_t str;
+            str.data = dir_entry->name;
+            str.length = dir_entry->name_length;
+
+            if(dir_entry->type == 1)
+            {
+                printf("\t- %iu %s. [File]\n", read_inode(fs, dir_entry->inode).lower_size, str.data, str.length, dir_entry->inode);
+            }
+            else if(dir_entry->type == 2)
+            {
+                printf("\t- %iu %s. [%iu]\n", read_inode(fs, dir_entry->inode).lower_size, str.data, str.length, dir_entry->inode);
+            }
+            dir_entry = (directory_entry_t*)(((uint8_t*)dir_entry) + dir_entry->size);
+        }
+    }
+    free(buffer, 4096);
+}
+
+void ext2_list(string_t path, file_system_t* fs)
+{
+    //sanity check
+    if(!str_starts(path, '/'))
+    {
+        return;
+    }
+
+    inode_t inode;
+    string_split_t split;
+    uint32_t inode_index;
+
+    //Root directory
+    if(path.length == 1)
+    {
+        inode = read_inode(fs, 2);
+        printf("Contents of '/':\n");
+        ext2_list_directory(&inode, fs);
+        return;
+    }
+
+    uint8_t assert_dir = str_ends(path, '/');
+
+    split = splitstr(path, '/');
+    while(1)
+    {
+        if(split.left.length == 0)
+        {
+            if(split.right.length == 0)
+                break;
+            
+            inode = read_inode(fs, 2);
+            split = splitstr(split.right, '/');
+            continue;
+        }
+
+        if(query_subnode(&inode, split.left, fs, &inode_index))
+        {
+            inode = read_inode(fs, inode_index);
+        }
+        else
+        {
+            printf("Directory '%s.' not found!\n", split.left, split.left.length);
+            return;
+        }
+
+        split = splitstr(split.right, '/');
+    }
+
+    printf("Contents of '%s.':\n", path.data, path.length);
+    ext2_list_directory(&inode, fs);
 }
 
 uint8_t discover_ext2_fs(drive_t* drive)
@@ -109,7 +208,7 @@ uint8_t discover_ext2_fs(drive_t* drive)
             }
             free(buffer, 1024 << sblock->log2_block_size);
 
-            fs->read = &read_test;
+            fs->list = &ext2_list;
             ///TODO: proper fs->read 
             ///TODO: proper fs->write
 

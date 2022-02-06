@@ -1,6 +1,6 @@
 #include "ps2.h"
 #include "hal.h"
-#include "intdt.h"
+#include "interrupts.h"
 #include "utils.h"
 
 uint8_t lastKey = 0;
@@ -8,13 +8,11 @@ uint8_t keyCache[256];
 uint16_t index = 0;
 uint8_t keyboard_status = 0;
 
-extern void keyboard_ISR();
-
 void init_keyboard()
 {
-    register_intdt(33, (uint64_t)keyboard_ISR);
+    register_isr_handler(33, (uint64_t)&keyboard_handler);
     keyboard_status = 1;
-    printf("Initialised PS2\n");
+    log("Initialised PS2");
 }
 
 uint8_t keyboard_enabled()
@@ -72,8 +70,7 @@ uint8_t keyboard_to_ascii(uint8_t key)
     return 0;
 }
 
-void keyboard_handler(void)
+void keyboard_handler(registers_t* regs)
 {
     keyCache[index++] = keyboard_to_ascii(inport8(0x60));
-    send_eoi(1);
 }

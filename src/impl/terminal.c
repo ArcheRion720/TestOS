@@ -1,5 +1,6 @@
-#include "debug.h"
+#include "terminal.h"
 #include "utils.h"
+#include "sync.h"
 
 void (*term_ptr)(const char* string, size_t length);
 char handy_buffer[128];
@@ -15,15 +16,11 @@ void init_terminal(struct stivale2_struct* stivale)
     }
 
     term_ptr = terminal_tag->term_write;
+    ticket_lock_init(PRINT_LOCK);
     printf("Initialised debug temrinal\n");
 }
 
-void debug_write(const char* string, size_t length)
+void terminal_write(const char* string, size_t length)
 {
     term_ptr(string, length);
-}
-
-void debug_newl()
-{
-    term_ptr("\n", 1);
 }
