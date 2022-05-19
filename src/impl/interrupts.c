@@ -84,7 +84,7 @@ void register_intdt(uint32_t code, uint64_t addr)
     IDT[code].zerohigh = 0;
 }
 
-#define PRINT_REG(x) printf(#x ": %ixq\n", regs.x);
+#define PRINT_REG(x) printf_ll(#x ": %ixq\n", regs.x);
 
 void isr_handler(registers_t regs)
 {
@@ -93,9 +93,9 @@ void isr_handler(registers_t regs)
     if(regs.interrupt < 32)
     {
         //panic!
-        printf("Error occured [%iu]\n", regs.interrupt);
-        printf("Error code: [%iu]\n", regs.error);
-        printf("RIP: [%ixq]\n", regs.rip);
+        printf_ll("Error occured [%iu]\n", regs.interrupt);
+        printf_ll("Error code: [%iu]\n", regs.error);
+        printf_ll("rip: %ixq\n", regs.rip);
         PRINT_REG(rax);
         PRINT_REG(rbx);
         PRINT_REG(rcx);
@@ -103,7 +103,7 @@ void isr_handler(registers_t regs)
         PRINT_REG(rdi);
         PRINT_REG(rsi);
         PRINT_REG(rbp);
-        printf("\n");
+        printf_ll("\n");
         PRINT_REG(cr2);
         PRINT_REG(cr3);
         PRINT_REG(cs);
@@ -115,7 +115,7 @@ void isr_handler(registers_t regs)
         for(uint32_t i = 0; i < 2; i++)
         {
             task_t* tsk = get_task(i);
-            printf("Process %iu CS: [%ixq]\n", tsk->id, tsk->regs.cs);
+            printf_ll("Process %iu CS: [%ixq]\n", tsk->id, tsk->regs.cs);
         }
 
         __asm__ ("hlt");

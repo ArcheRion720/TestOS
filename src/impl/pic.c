@@ -2,6 +2,7 @@
 
 void init_pic()
 {
+    __asm__("cli");
     outport8(PIC_MASTER_CMD, ICW1_INIT | ICW1_ICW4);
     io_wait();
     outport8(PIC_SLAVE_CMD, ICW1_INIT | ICW1_ICW4);
@@ -22,6 +23,7 @@ void init_pic()
     outport8(PIC_MASTER_DATA, 0x0);
     outport8(PIC_SLAVE_DATA, 0x0);
     log("Initialised PIC");
+    __asm__("sti");
 }
 
 void pic_send_eoi(uint8_t irq)

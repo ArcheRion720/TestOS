@@ -44,7 +44,6 @@ string_split_t splitstr(string_t string, char delimeter)
         }
     }
 
-    //return (string_split_t){ (string_t) { 0, 0 }, string };
     return (string_split_t) { 0 };
 }
 

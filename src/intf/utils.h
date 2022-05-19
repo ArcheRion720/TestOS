@@ -8,5 +8,6 @@ void memcpy(uint8_t* src, uint8_t* dest, uint64_t count);
 void str_cpy(uint8_t* src, uint8_t* dest, uint8_t count);
 
 int printf(const char* format, ...);
+int printf_ll(const char* format, ...);
 int log(const char* format, ...);
 int warn(const char* format, ...);

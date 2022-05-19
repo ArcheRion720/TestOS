@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include "bootloader.h"
 #include "interrupts.h"
+#include "gdt.h"
 #include "pic.h"
 #include "pit.h"
 #include "ps2.h"
@@ -17,6 +18,8 @@
 
 void initialize(struct stivale2_struct* stivale)
 {
+    init_serial(0);
+    init_gdt();
     init_terminal(stivale);
     init_pic();
     init_intdt();

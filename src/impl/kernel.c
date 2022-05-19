@@ -10,13 +10,18 @@ uint32_t b = 0;
 
 void task_A()
 {
-    for(;;);
+    for(;;)
+    {
+        warn("A");
+    }
 }
 
 void task_B()
 {
     for(;;)
-    { }
+    { 
+        log("B");
+    }
 }
 
 void kernel_start(struct stivale2_struct* stivale)
@@ -34,9 +39,6 @@ void kernel_start(struct stivale2_struct* stivale)
     // }
 
     // file_system_t* fs = get_filesystem(0);
-    
-    // string_t str = cstr("abc");
-    // string_split_t spl = splitstr(str, '/');
 
     // fs->list(cstr("/"), fs);
     // fs->list(cstr("/lost+found/"), fs);
@@ -49,10 +51,10 @@ void kernel_start(struct stivale2_struct* stivale)
     string_t a_str = cstr("A");
     string_t b_str = cstr("B"); 
 
-    __asm__("cli");
-    start_task(a_str, &task_A, read_cr3());
-    start_task(b_str, &task_B, read_cr3());
-    __asm__("sti");
+    start_task(a_str, &task_A, read_cr3(), false);
+    start_task(b_str, &task_B, read_cr3(), true);
+
+    start_tasking();
 
     for(;;)
     {
