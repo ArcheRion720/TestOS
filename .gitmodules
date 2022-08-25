@@ -1,3 +1,0 @@
-[submodule "target/limine"]
-	path = target/limine
-	url = https://github.com/limine-bootloader/limine
