@@ -273,12 +273,12 @@ void free(void* ptr, uint64_t size)
 
 void* malloc_page()
 {
-    return malloc(0x2000);
+    return malloc(PAGE_SIZE);
 }
 
 void free_page(void* ptr)
 {
-    return free(ptr, 0x2000);
+    return free(ptr, PAGE_SIZE);
 }
 
 malloc_report_t malloc_ex(uint64_t size)

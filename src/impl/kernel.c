@@ -48,6 +48,25 @@ void kernel_start(struct stivale2_struct* stivale)
     // log("Test");
     // warn("Test 2");
 
+    // page_table_t* test = malloc_page();
+    // memset(test, 0, sizeof(page_table_t));
+
+    // for(uint64_t i = 0; i < 500; i++)
+    // {
+    //     map_virt_memory(test, 0x100000 * i, (0x100000 * i) + 0x1000);
+    // }
+
+    // printf("CR3: %ixq\n", (uintptr_t)test);
+    // __asm__ ("mov %0, %%cr3" :: "r"(test));
+
+   // printf("CR3: %ixq\n", (uintptr_t)page_table);
+
+    //map_virt_memory(page_table, 0x69000, 0x42000);
+
+    // __asm__ ("mov %cr3,%rax");
+    // __asm__ ("mov %rax,%cr3");
+
+
     string_t a_str = cstr("A");
     string_t b_str = cstr("B"); 
 
