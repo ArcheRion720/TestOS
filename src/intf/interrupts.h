@@ -1,5 +1,4 @@
 #pragma once
-#include <stdint.h>
 #include "common.h"
 
 struct idtr_descriptor

@@ -1,6 +1,5 @@
 #include "fs/ext2.h"
 #include "memory/pmm.h"
-#include "array.h"
 #include "utils.h"
 #include "string.h"
 

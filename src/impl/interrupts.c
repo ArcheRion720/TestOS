@@ -1,7 +1,5 @@
 #include "interrupts.h"
 #include "hal.h"
-#include "utils.h"
-#include "tasking.h"
 
 idtr_descriptor_t IDT[256];
 isr_t handlers[256];
@@ -89,6 +87,7 @@ void register_intdt(uint32_t code, uint64_t addr)
 void isr_handler(registers_t regs)
 {
     //printf("Interrupt => [%iu]\n", regs.interrupt);
+    
     send_eoi(regs.interrupt - 32);
     if(regs.interrupt < 32)
     {
@@ -112,14 +111,15 @@ void isr_handler(registers_t regs)
         PRINT_REG(fs);
         PRINT_REG(gs);
 
-        for(uint32_t i = 0; i < 2; i++)
-        {
-            task_t* tsk = get_task(i);
-            printf_ll("Process %iu CS: [%ixq]\n", tsk->id, tsk->regs.cs);
-        }
+        // for(uint32_t i = 0; i < 2; i++)
+        // {
+        //     //task_t* tsk = get_task(i);
+        //     //printf_ll("Process %iu CS: [%ixq]\n", tsk->id, tsk->regs.cs);
+        // }
 
         __asm__ ("hlt");
     }    
+    
     if(regs.interrupt >= 32 && handlers[regs.interrupt] != 0)
     {
         isr_t handler = handlers[regs.interrupt];

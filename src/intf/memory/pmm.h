@@ -1,5 +1,5 @@
 #pragma once
-#include "bootloader.h"
+#include <stdint.h>
 
 #define PAGE_SIZE       0x1000
 #define PMM_HBLOCK_SIZE 0x2000
@@ -39,4 +39,4 @@ void free_page(void* ptr);
 
 malloc_report_t malloc_ex(uint64_t size);
 
-void init_memory_manager(struct stivale2_struct* stivale);
+void init_memory_manager();

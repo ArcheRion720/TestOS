@@ -1,26 +1,32 @@
 #include "terminal.h"
 #include "utils.h"
-#include "sync.h"
+// #include "sync.h"
+#include "limine.h"
 
-void (*term_ptr)(const char* string, size_t length);
-char handy_buffer[128];
+static volatile struct limine_terminal_request terminal_request = {
+    .id = LIMINE_TERMINAL_REQUEST,
+    .revision = 0
+};
 
-void init_terminal(struct stivale2_struct* stivale)
+static struct limine_terminal* terminal;
+static limine_terminal_write term_write;
+
+void init_terminal()
 {
-    struct stivale2_struct_tag_terminal* terminal_tag;
-    terminal_tag = stivale2_get_tag(stivale, STIVALE2_STRUCT_TAG_TERMINAL_ID);
-
-    if(terminal_tag == NULL)
+    if (terminal_request.response == NULL || terminal_request.response->terminal_count < 1) 
     {
-        asm ("hlt");
+        //TODO: PANIC
+        return;
     }
 
-    term_ptr = terminal_tag->term_write;
-    ticket_lock_init(PRINT_LOCK);
-    printf("Initialised debug temrinal\n");
+    terminal = terminal_request.response->terminals[0];
+    term_write = terminal_request.response->write;
+
+    // ticket_lock_init(PRINT_LOCK);
+    printf_ll("Initialised debug temrinal\n");
 }
 
 void terminal_write(const char* string, size_t length)
 {
-    term_ptr(string, length);
+    term_write(terminal, string, length);
 }

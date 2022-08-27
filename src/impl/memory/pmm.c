@@ -1,26 +1,32 @@
+#include <stddef.h>
 #include "memory/pmm.h"
 #include "utils.h"
 #include "common.h"
-#include "sync.h"
+#include "limine.h"
+#include "utils.h"
 
-uint16_t region_count;
-memory_region_t regions[1024];
+static volatile struct limine_memmap_request mmap_request = {
+    .id = LIMINE_MEMMAP_REQUEST,
+    .revision = 0
+};
 
-void init_memory_manager(struct stivale2_struct* stivale)
+static uint16_t region_count;
+static memory_region_t regions[1024];
+
+
+void init_memory_manager()
 {
-    struct stivale2_struct_tag_memmap* memory_map = stivale2_get_tag(stivale, STIVALE2_STRUCT_TAG_MEMMAP_ID);
-    struct stivale2_mmap_entry* entry;
-
-    //Hope will never happen
-    //if(memory_map->entries > region_count)
-    //{
-    //  Some creative fix
-    //}
-
-    for(uint64_t i = 0; i < memory_map->entries; i++)
+    if(mmap_request.response == NULL || mmap_request.response->entry_count == 0)
     {
-        entry = &memory_map->memmap[i];
-        if(entry->type != STIVALE2_MMAP_USABLE)
+        //TODO: panic
+        return;
+    }
+
+    struct limine_memmap_entry* entry;
+    for(uint64_t i = 0; i < mmap_request.response->entry_count; i++)
+    {
+        entry = mmap_request.response->entries[i];
+        if(entry->type != LIMINE_MEMMAP_USABLE)
             continue;
 
         uint64_t blocks = entry->length / PMM_HBLOCK_SIZE;
@@ -45,7 +51,46 @@ void init_memory_manager(struct stivale2_struct* stivale)
         region_count++;
     }
 
-    ticket_lock_init(MEMORY_ALLOC_LOCK);
+    log("Memory manager initialised!");
+
+    // struct stivale2_struct_tag_memmap* memory_map = stivale2_get_tag(stivale, STIVALE2_STRUCT_TAG_MEMMAP_ID);
+    // struct stivale2_mmap_entry* entry;
+
+    // //Hope will never happen
+    // //if(memory_map->entries > region_count)
+    // //{
+    // //  Some creative fix
+    // //}
+
+    // for(uint64_t i = 0; i < memory_map->entries; i++)
+    // {
+    //     entry = &memory_map->memmap[i];
+    //     if(entry->type != STIVALE2_MMAP_USABLE)
+    //         continue;
+
+    //     uint64_t blocks = entry->length / PMM_HBLOCK_SIZE;
+    //     uint64_t bmap_blocks = (PMM_ENTRY_BITS * blocks) / 8;
+    //     bmap_blocks = ALIGN_UP(bmap_blocks, PMM_HBLOCK_SIZE); //(bmap_blocks + 0x1FFF) & ~0x1FFF;
+    //     bmap_blocks /= PMM_HBLOCK_SIZE;
+    //     blocks -= bmap_blocks;
+
+    //     if(blocks == 0)
+    //         continue;
+
+    //     regions[region_count].base = entry->base;
+    //     regions[region_count].alloc_base = entry->base + (bmap_blocks * PMM_HBLOCK_SIZE);
+    //     regions[region_count].blocks = blocks;
+    //     regions[region_count].bmap_reserved_blocks = bmap_blocks;
+
+    //     for(uint8_t k = 0; k < 8; k++)
+    //     {
+    //         regions[region_count].offsets[k] = ((1 << k) - 1) * blocks;
+    //     }
+
+    //     region_count++;
+    // }
+
+    // ticket_lock_init(MEMORY_ALLOC_LOCK);
 }
 
 pmm_bitmap_iterator_t iterate_bitmap(uint64_t order)
@@ -161,14 +206,14 @@ void* malloc_span(uint64_t blocks)
 
 void* malloc(uint64_t size)
 {
-    ticket_lock_acquire(MEMORY_ALLOC_LOCK);
+    // ticket_lock_acquire(MEMORY_ALLOC_LOCK);
     if(size == 0)
         return 0;
 
     if(size > PMM_HBLOCK_SIZE)
     {
         void* result = malloc_span(ALIGN_UP(size, PMM_HBLOCK_SIZE) / PMM_HBLOCK_SIZE);
-        ticket_lock_release(MEMORY_ALLOC_LOCK);
+        // ticket_lock_release(MEMORY_ALLOC_LOCK);
         return result;
     }
 
@@ -180,7 +225,7 @@ void* malloc(uint64_t size)
     pmm_bitmap_iterator_t it = iterate_bitmap(order);
     if(!it.valid)
     {
-        ticket_lock_release(MEMORY_ALLOC_LOCK);
+        // ticket_lock_release(MEMORY_ALLOC_LOCK);
         return 0;
     }
 
@@ -198,7 +243,7 @@ void* malloc(uint64_t size)
     }
 
     set_bits_lower_order(&regions[it.region], order, it.rel_bit);
-    ticket_lock_release(MEMORY_ALLOC_LOCK);
+    // ticket_lock_release(MEMORY_ALLOC_LOCK);
     return (uint8_t*)regions[it.region].alloc_base + (PMM_HBLOCK_SIZE / (1 << order) * it.rel_bit);
 }
 
@@ -225,11 +270,11 @@ void free_span(void* ptr, uint64_t blocks)
 
 void free(void* ptr, uint64_t size)
 {
-    ticket_lock_acquire(MEMORY_ALLOC_LOCK);
+    // ticket_lock_acquire(MEMORY_ALLOC_LOCK);
     if(size > PMM_HBLOCK_SIZE)
     {
         free_span(ptr, ALIGN_UP(size, PMM_HBLOCK_SIZE) / PMM_HBLOCK_SIZE);
-        ticket_lock_release(MEMORY_ALLOC_LOCK);
+        // ticket_lock_release(MEMORY_ALLOC_LOCK);
         return;
     }
 
@@ -268,7 +313,7 @@ void free(void* ptr, uint64_t size)
         ibit /= 2;
         CLEAR_BIT((uint8_t*)regions[reg - 1].base, ibit);
     }
-    ticket_lock_release(MEMORY_ALLOC_LOCK);
+    // ticket_lock_release(MEMORY_ALLOC_LOCK);
 }
 
 void* malloc_page()

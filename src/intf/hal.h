@@ -40,5 +40,6 @@ void outport32(uint16_t portId, uint32_t value);
 uint8_t init_serial(uint16_t com);
 uint8_t in_serial(uint16_t com);
 void out_serial(uint16_t com, uint8_t value);
+void out_serial_str(uint16_t com, const char* str, uint32_t length);
 
 uintptr_t read_cr3();

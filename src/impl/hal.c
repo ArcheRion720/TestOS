@@ -108,6 +108,15 @@ void out_serial(uint16_t com, uint8_t value)
     outport8(com, value);
 }
 
+void out_serial_str(uint16_t com, const char* str, uint32_t length)
+{
+    for(uint32_t i = 0; i < length; i++)
+    {
+        out_serial(com, str[i]);
+    }
+}
+
+
 void io_wait(void)
 {
     outport8(0x80, 0);

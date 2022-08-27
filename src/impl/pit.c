@@ -1,6 +1,5 @@
 #include "pit.h"
 #include "utils.h"
-#include "tasking.h"
 
 extern uintptr_t isr_stack_top;
 

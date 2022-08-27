@@ -57,10 +57,10 @@ setup:
 
 .PHONY: build-kernel
 build-kernel: $(KERNEL)
-	cp -v dist/$(KERNEL) target/limine.cfg $(LIMINE)/limine.sys $(LIMINE)/limine-cd.bin $(LIMINE)/limine-eltorito-efi.bin iso_root/ && \
+	cp -v dist/$(KERNEL) target/limine.cfg $(LIMINE)/limine.sys $(LIMINE)/limine-cd.bin $(LIMINE)/limine-cd-efi.bin iso_root/ && \
 	xorriso -as mkisofs -b limine-cd.bin \
 			-no-emul-boot -boot-load-size 4 -boot-info-table \
-			--efi-boot limine-eltorito-efi.bin \
+			--efi-boot limine-cd-efi.bin \
 			-efi-boot-part --efi-boot-image --protective-msdos-label \
 			iso_root -o dist/TestOS.iso && \
-	./$(LIMINE)/limine-install-linux-x86_64 dist/TestOS.iso
+	./$(LIMINE)/limine-deploy.exe dist/TestOS.iso
