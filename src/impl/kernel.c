@@ -1,14 +1,26 @@
 #include "kernel.h"
 
+void initialize()
+{
+    init_serial(COM1);
+    init_terminal();
+    init_intdt();
+    init_pic();
+    init_pit();
+    init_keyboard();
+    init_memory_manager();    
+    //init_gdt();
+    init_pci();
+    init_rtc();
+    init_ahci();
+}
+
 void kernel_start(void)
 {
     initialize();
-    out_serial_str(COM1, "Hello\n", 6);
-    out_serial_str(COM1, "World!\n", 7);
 
     for(;;)
     {
         asm("hlt");
     }
 }
-

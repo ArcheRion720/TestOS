@@ -13,12 +13,10 @@ static volatile struct limine_memmap_request mmap_request = {
 static uint16_t region_count;
 static memory_region_t regions[1024];
 
-
 void init_memory_manager()
 {
     if(mmap_request.response == NULL || mmap_request.response->entry_count == 0)
     {
-        //TODO: panic
         return;
     }
 
@@ -52,45 +50,6 @@ void init_memory_manager()
     }
 
     log("Memory manager initialised!");
-
-    // struct stivale2_struct_tag_memmap* memory_map = stivale2_get_tag(stivale, STIVALE2_STRUCT_TAG_MEMMAP_ID);
-    // struct stivale2_mmap_entry* entry;
-
-    // //Hope will never happen
-    // //if(memory_map->entries > region_count)
-    // //{
-    // //  Some creative fix
-    // //}
-
-    // for(uint64_t i = 0; i < memory_map->entries; i++)
-    // {
-    //     entry = &memory_map->memmap[i];
-    //     if(entry->type != STIVALE2_MMAP_USABLE)
-    //         continue;
-
-    //     uint64_t blocks = entry->length / PMM_HBLOCK_SIZE;
-    //     uint64_t bmap_blocks = (PMM_ENTRY_BITS * blocks) / 8;
-    //     bmap_blocks = ALIGN_UP(bmap_blocks, PMM_HBLOCK_SIZE); //(bmap_blocks + 0x1FFF) & ~0x1FFF;
-    //     bmap_blocks /= PMM_HBLOCK_SIZE;
-    //     blocks -= bmap_blocks;
-
-    //     if(blocks == 0)
-    //         continue;
-
-    //     regions[region_count].base = entry->base;
-    //     regions[region_count].alloc_base = entry->base + (bmap_blocks * PMM_HBLOCK_SIZE);
-    //     regions[region_count].blocks = blocks;
-    //     regions[region_count].bmap_reserved_blocks = bmap_blocks;
-
-    //     for(uint8_t k = 0; k < 8; k++)
-    //     {
-    //         regions[region_count].offsets[k] = ((1 << k) - 1) * blocks;
-    //     }
-
-    //     region_count++;
-    // }
-
-    // ticket_lock_init(MEMORY_ALLOC_LOCK);
 }
 
 pmm_bitmap_iterator_t iterate_bitmap(uint64_t order)

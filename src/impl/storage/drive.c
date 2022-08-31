@@ -1,6 +1,7 @@
 #include "storage/ahci.h"
 #include "storage/drive.h"
 #include "storage/gpt.h"
+#include "utils.h"
 
 drive_t drives[32];
 uint8_t drive_count; 

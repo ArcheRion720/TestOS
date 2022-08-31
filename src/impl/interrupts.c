@@ -127,6 +127,8 @@ void isr_handler(registers_t regs)
     }
 }
 
+#undef PRINT_REG
+
 void register_isr_handler(uint32_t code, isr_t handler)
 {
     handlers[code] = handler;

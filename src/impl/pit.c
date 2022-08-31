@@ -1,8 +1,6 @@
 #include "pit.h"
 #include "utils.h"
 
-extern uintptr_t isr_stack_top;
-
 uint64_t ticks;
 void init_pit()
 {

@@ -52,6 +52,7 @@ $(KERNEL): $(OBJASM) $(OBJ)
 setup:
 	mkdir -p build/memory
 	mkdir -p build/ahci
+	mkdir -p build/fs
 	mkdir -p dist
 	mkdir -p iso_root
 
@@ -63,4 +64,4 @@ build-kernel: $(KERNEL)
 			--efi-boot limine-cd-efi.bin \
 			-efi-boot-part --efi-boot-image --protective-msdos-label \
 			iso_root -o dist/TestOS.iso && \
-	./$(LIMINE)/limine-deploy.exe dist/TestOS.iso
+	./$(LIMINE)/limine-deploy dist/TestOS.iso
