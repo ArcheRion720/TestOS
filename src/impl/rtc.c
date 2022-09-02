@@ -51,7 +51,7 @@ void rtc_handler()
 
 void init_rtc()
 {
-    register_isr_handler(40, (uintptr_t)&rtc_handler);
+    register_isr_handler(40, (isr_t)&rtc_handler);
 
     uint8_t rtc_data;
     rtc_data = read_rtc(RTC_REGISTER_B);

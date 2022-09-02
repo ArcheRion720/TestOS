@@ -6,31 +6,32 @@ CFLAGS ?= -Wall -Wextra -O2 -pipe -iquote src/intf
 LDFLAGS ?=
 LIMINE ?= target/limine
 
-INTERNALCFLAGS :=		 \
-	-I.                  \
-	-std=gnu11           \
-	-ffreestanding       \
-	-fno-stack-protector \
-	-pie                 \
-	-mno-80387           \
-	-mno-mmx             \
-	-mno-3dnow           \
-	-mno-sse             \
-	-mno-sse2            \
-	-mno-red-zone        \
-	-m64			     \
-    -MMD				 \
-	-mmanual-endbr       \
-	-mgeneral-regs-only  \
+INTERNALCFLAGS :=			\
+	-I.						\
+	-std=gnu11				\
+	-ffreestanding			\
+	-fno-stack-protector	\
+	-pie					\
+	-mno-80387				\
+	-mno-mmx				\
+	-mno-3dnow				\
+	-mno-sse				\
+	-mno-sse2				\
+	-mno-red-zone			\
+	-m64					\
+    -MMD					\
+	-mmanual-endbr			\
+	-mgeneral-regs-only		\
+	-funsigned-char			\
 	-fcf-protection=branch
  
-INTERNALLDFLAGS :=		   \
-	-nostdlib              \
-	-zmax-page-size=0x1000 \
-	-static                \
-	-pie                   \
-	--no-dynamic-linker    \
-	-ztext				   \
+INTERNALLDFLAGS :=			\
+	-nostdlib				\
+	-zmax-page-size=0x1000	\
+	-static					\
+	-pie					\
+	--no-dynamic-linker		\
+	-ztext					\
 	-T target/linker.ld 
 
 CFILES := $(shell find src/impl -name *.c)
@@ -53,6 +54,7 @@ setup:
 	mkdir -p build/memory
 	mkdir -p build/ahci
 	mkdir -p build/fs
+	mkdir -p build/storage
 	mkdir -p dist
 	mkdir -p iso_root
 

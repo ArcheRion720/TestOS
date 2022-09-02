@@ -10,7 +10,7 @@ uint8_t keyboard_status = 0;
 
 void init_keyboard()
 {
-    register_isr_handler(33, (uint64_t)&keyboard_handler);
+    register_isr_handler(33, (isr_t)&keyboard_handler);
     keyboard_status = 1;
     log("Initialised PS2");
 }

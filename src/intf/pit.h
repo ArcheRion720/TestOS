@@ -1,5 +1,5 @@
 #pragma once
-#include "common.h"
+#include <stdint.h>
 
 #define PIT_CH0_DATA 0x40
 #define PIT_CMD 0x43

@@ -1,17 +1,13 @@
-// #include "utils.h"
+#include "utils.h"
 #include "rtc.h"
 #include "terminal.h"
-// #include "tasking.h"
 #include <stdarg.h>
 
-// #include "sync.h"
+const uint8_t* digits_dict = (const uint8_t*)"0123456789ABCDEF";
 
-// char buffer[256];
-const char* digits_dict = "0123456789ABCDEF";
-
-void str_cpy(uint8_t* src, uint8_t* dest, uint8_t count)
+void str_cpy(uint8_t* src, uint8_t* dest, uint32_t count)
 {
-    for(int i = 0; i < count; i++)
+    for(uint32_t i = 0; i < count; i++)
     {
         dest[i] = src[i];
     }
@@ -33,12 +29,12 @@ void memcpy(uint8_t* src, uint8_t* dest, uint64_t count)
     }
 }
 
-#define FORMAT_TIME(index, var)   \
+#define FORMAT_TIME(index, var)     \
     temp = var / 10;                \
     buffer[index] = '0' + temp;     \
     buffer[index + 1] = '0' + (var - 10 * temp);
 
-void write_time(char* buffer, int* ptr, time_t time)
+void write_time(uint8_t* buffer, int* ptr, time_t time)
 {
     uint8_t temp;
     FORMAT_TIME(0, time.day_month);
@@ -60,7 +56,7 @@ void write_time(char* buffer, int* ptr, time_t time)
 
 #undef FORMAT_TIME
 
-void write_int_hex(char* buffer, int* ptr, uint8_t hex_size, uint64_t value)
+void write_int_hex(uint8_t* buffer, int* ptr, uint8_t hex_size, uint64_t value)
 {
     //hex_size :    0 -> 8  bit
     //              1 -> 16 bit
@@ -77,7 +73,7 @@ void write_int_hex(char* buffer, int* ptr, uint8_t hex_size, uint64_t value)
     }
 }
 
-void write_int_dec(char* buffer, int* ptr, uint64_t value)
+void write_int_dec(uint8_t* buffer, int* ptr, uint64_t value)
 {
     uint64_t digits = value;
     uint8_t i = 0;
@@ -99,12 +95,11 @@ void write_int_dec(char* buffer, int* ptr, uint64_t value)
     while(value);
 }
 
-uint8_t buffer[256];
+static uint8_t buffer[256];
 
 int vprintf(const char* format, va_list list)
 {
     int result = 0;
-    uint8_t hex_mode = 0;
     char* ptr = 0;
     uint32_t length;
 

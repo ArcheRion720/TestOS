@@ -9,7 +9,7 @@ void initialize()
     init_pit();
     init_keyboard();
     init_memory_manager();    
-    //init_gdt();
+    init_gdt();
     init_pci();
     init_rtc();
     init_ahci();

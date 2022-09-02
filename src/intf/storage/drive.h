@@ -11,6 +11,9 @@
 #define FS_NONE 0
 #define FS_EXT2 1
 
+struct drive;
+struct partition;
+
 typedef uint8_t (*drive_io_function)(struct drive*, uint64_t, uint64_t, uint8_t*);
 typedef uint8_t (*partition_function)(const char* directory);
 

@@ -1,5 +1,6 @@
 #include "pit.h"
 #include "utils.h"
+#include "hal.h"
 
 uint64_t ticks;
 void init_pit()

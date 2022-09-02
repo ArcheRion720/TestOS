@@ -2,6 +2,8 @@
 #include "storage/drive.h"
 #include "string.h"
 
+struct file_system;
+
 //TODO: some return type
 typedef void (*fs_function)(string_t path, struct file_system*);
 

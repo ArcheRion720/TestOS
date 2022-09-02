@@ -4,12 +4,10 @@
 #include "hal.h"
 #include "terminal.h"
 
-gdtr_descriptor_t* gdt;
+gdtr_descriptor_t gdt[9];
 
 void init_gdt()
 {
-    gdt = (gdtr_descriptor_t*) malloc(sizeof(gdtr_descriptor_t*) * 9);
-
     __asm__ ("cli");
     register_gdt(0, 0, 0, 0, 0); //null entry
 

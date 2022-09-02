@@ -189,7 +189,7 @@ void* malloc(uint64_t size)
     }
 
     uint8_t* base = (uint8_t*)regions[it.region].base;
-    uint64_t blocks = regions[it.region].blocks;
+    //uint64_t blocks = regions[it.region].blocks;
 
     SET_BIT(base, it.abs_bit);
 
@@ -254,7 +254,7 @@ void free(void* ptr, uint64_t size)
         }
     }
 
-    uint64_t blocks = regions[reg].blocks;
+    //uint64_t blocks = regions[reg].blocks;
     uint64_t bit = ((addr - regions[reg].alloc_base) * (1 << order)) / PMM_HBLOCK_SIZE;
 
     CLEAR_BIT((uint8_t*)regions[reg].base, regions[reg].offsets[order] + bit);

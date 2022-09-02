@@ -1,7 +1,7 @@
 #include "string.h"
 #include <stdint.h>
 
-uint32_t strlen(const char* str)
+uint32_t strlen(const uint8_t* str)
 {
     uint32_t result = 0;
     while(str[result++] != '\0')
@@ -10,26 +10,26 @@ uint32_t strlen(const char* str)
     return result - 1;
 }
 
-uint8_t str_starts(string_t string, char test)
+uint8_t str_starts(string_t string, uint8_t test)
 {
     if(string.length == 0)
         return 0;
     return string.data[0] == test;
 }
 
-uint8_t str_ends(string_t string, char test)
+uint8_t str_ends(string_t string, uint8_t test)
 {
     if(string.length == 0)
         return 0;
     return string.data[string.length] == test;
 }
 
-string_t cstr(const char* str)
+string_t cstr(const uint8_t* str)
 {
     return (string_t){ str, strlen(str) };
 }
 
-string_split_t splitstr(string_t string, char delimeter)
+string_split_t splitstr(string_t string, uint8_t delimeter)
 {
     uint32_t index;
     for(index = 0; index < string.length; index++)

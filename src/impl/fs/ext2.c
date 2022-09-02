@@ -134,7 +134,7 @@ void ext2_list(string_t path, file_system_t* fs)
         return;
     }
 
-    uint8_t assert_dir = str_ends(path, '/');
+    //uint8_t assert_dir = str_ends(path, '/');
 
     split = splitstr(path, '/');
     while(1)

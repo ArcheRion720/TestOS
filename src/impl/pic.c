@@ -1,4 +1,6 @@
 #include "pic.h"
+#include "hal.h"
+#include "utils.h"
 
 void init_pic()
 {
