@@ -1,15 +1,20 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#include "capabilities.h"
 #include "terminal.h"
 #include "hal.h"
 #include "gdt.h"
 #include "memory/pmm.h"
+#include "memory/vmm.h"
 #include "pic.h"
 #include "pit.h"
 #include "ps2.h"
 #include "interrupts.h"
 #include "pci.h"
 #include "rtc.h"
-#include "storage/ahci.h"
-#include "storage/drive.h"
+#include "syscall.h"
+#include "elf.h"
+#include "scheduler/scheduler.h"
+
+void kernel_start();

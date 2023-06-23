@@ -5,8 +5,6 @@
 uint8_t binary_read;
 time_t boot_time;
 
-extern void rtc_ISR();
-
 uint8_t read_rtc(uint8_t reg)
 {
     outport8(0x70, reg);
@@ -64,7 +62,7 @@ void init_rtc()
     write_rtc(RTC_REGISTER_B, rtc_data);
     read_rtc(RTC_REGISTER_C);
 
-    log("RTC clock initialised");
+    // log("RTC clock initialised");
 }
 
 time_t read_rtc_time()

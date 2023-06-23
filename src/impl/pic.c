@@ -1,6 +1,6 @@
 #include "pic.h"
 #include "hal.h"
-#include "utils.h"
+#include "print.h"
 
 void init_pic()
 {
@@ -24,7 +24,8 @@ void init_pic()
 
     outport8(PIC_MASTER_DATA, 0x0);
     outport8(PIC_SLAVE_DATA, 0x0);
-    log("Initialised PIC");
+    
+    print_fmt("Initialised PIC\n");
     __asm__("sti");
 }
 

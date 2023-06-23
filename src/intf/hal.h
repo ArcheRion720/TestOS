@@ -13,7 +13,26 @@
 #define COM2 0x2F8
 #define COM3 0x3E8
 #define COM4 0x2E8
-#define LINE_STATUS(com) com + 5
+
+#define COM_INTERRUPT(com)      ((com) + 1)
+#define COM_FIFO(com)           ((com) + 2)
+#define COM_LINE_CONTROL(com)   ((com) + 3)
+#define COM_LINE_STATUS(com)    ((com) + 5)
+#define COM_MODEM(com)          ((com) + 4)
+
+#define COM_BAUD_LSB(com)       ((com))
+#define COM_BAUD_MSB(com)       ((com) + 1)
+
+#define COM_DLAB_BIT            0x80
+
+#define COM_LINE_READY   (1 << 0)
+#define COM_LINE_OVERRUN (1 << 1)
+#define COM_LINE_PARITY  (1 << 2)
+#define COM_LINE_FRAMING (1 << 3)
+#define COM_LINE_BREAK   (1 << 4)
+#define COM_LINE_BUFEMPT (1 << 5)
+#define COM_LINE_FREE    (1 << 6)
+#define COM_LINE_ERRORIM (1 << 7)
 
 #define PCI_CONFIG_ADDR 0xCF8
 #define PCI_CONFIG_DATA 0xCFC

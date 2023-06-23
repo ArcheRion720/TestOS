@@ -1,6 +1,5 @@
 #pragma once
 #include <stdint.h>
-#include "hal.h"
 
 #define PIC_MASTER_CMD 0x20
 #define PIC_MASTER_DATA 0x21

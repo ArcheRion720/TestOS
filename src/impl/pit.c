@@ -1,3 +1,4 @@
+#include "print.h"
 #include "pit.h"
 #include "utils.h"
 #include "hal.h"
@@ -13,5 +14,6 @@ void init_pit()
 
     //register_isr_handler(32, &pit_handler);
 
-    log("Initialised PIT");
+    //log("Initialised PIT");
+    print_fmt("Initialised PIT\n");
 }

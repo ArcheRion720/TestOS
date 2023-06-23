@@ -1,11 +1,11 @@
 #pragma once
-#include "common.h"
+#include "registers.h"
 
 struct idtr_descriptor
 {
     uint16_t offset015;
     uint16_t selector;
-    uint8_t zero;
+    uint8_t ist;
     uint8_t type;
     uint16_t offset1631;
     uint32_t offset3263;
@@ -22,7 +22,7 @@ typedef struct idtr idtr_t;
 
 typedef void (*isr_t)(registers_t*);
 
-void init_intdt();
+void init_idt();
 void register_intdt(uint32_t code, uint64_t handler);
 void isr_handler(registers_t regs);
 void register_isr_handler(uint32_t code, isr_t handler);

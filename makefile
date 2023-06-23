@@ -2,7 +2,7 @@ KERNEL := kernel.elf
 CC ?= gcc
 LD ?= lld
 ASM ?= nasm
-CFLAGS ?= -Wall -Wextra -O2 -pipe -iquote src/intf
+CFLAGS ?= -Wall -Wextra -O0 -g -pipe -iquote src/intf -ggdb
 LDFLAGS ?=
 LIMINE ?= target/limine
 
@@ -22,8 +22,8 @@ INTERNALCFLAGS :=			\
     -MMD					\
 	-mmanual-endbr			\
 	-mgeneral-regs-only		\
-	-funsigned-char			\
-	-fcf-protection=branch
+	-fcf-protection=branch  \
+	-funsigned-char
  
 INTERNALLDFLAGS :=			\
 	-nostdlib				\
@@ -35,16 +35,16 @@ INTERNALLDFLAGS :=			\
 	-T target/linker.ld 
 
 CFILES := $(shell find src/impl -name *.c)
-ASMFILES := $(shell find src/asm -name *.asm)
+ASMFILES := $(shell find src/impl -name *.asm)
 OBJ := $(patsubst src/impl/%.c, build/%.o, $(CFILES))
-OBJASM := $(patsubst src/asm/%.asm, build/%.o, $(ASMFILES))
+OBJASM := $(patsubst src/impl/%.asm, build/%.s.o, $(ASMFILES))
 RESOBJ := $(shell find res -name *.o)
 
  $(OBJ): build/%.o : src/impl/%.c
 	$(CC) $(CFLAGS) $(INTERNALCFLAGS) -c $< -o $@
 
-$(OBJASM): build/%.o : src/asm/%.asm
-	$(ASM) -f elf64 $(patsubst build/%.o, src/asm/%.asm, $@) -o $@
+$(OBJASM): build/%.s.o : src/impl/%.asm
+	$(ASM) -f elf64 $(patsubst build/%.s.o, src/impl/%.asm, $@) -o $@
 
 $(KERNEL): $(OBJASM) $(OBJ) 
 	$(LD) $(OBJASM) $(OBJ) $(RESOBJ) $(LDFLAGS) $(INTERNALLDFLAGS) -o dist/${@F}

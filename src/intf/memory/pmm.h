@@ -1,42 +1,50 @@
 #pragma once
 #include <stdint.h>
+#include "linked_list.h"
 
-#define PAGE_SIZE       0x1000
-#define PMM_HBLOCK_SIZE 0x2000
-#define PMM_LOWEST_ORD  0x7
-#define PMM_ENTRY_BITS  ((1 << (PMM_LOWEST_ORD + 1)) - 1)
+#define PMM_PAGE_SIZE 0x1000
+#define PMM_BLOCKS_LIMIT ((PMM_PAGE_SIZE - sizeof(struct memory_area)) / (sizeof(struct memory_block)))
+#define PMM_BLOCK_USED 1
+#define PMM_BLOCK_FREE 0
 
-struct memory_region
+#define PMM_POOL_INIT_SIZE (PMM_PAGE_SIZE * 16)
+
+#define SIZE_IN_PAGES(x) ((x) >> 12)
+
+struct memory_block
 {
-    uint64_t base;
-    uint64_t alloc_base;
-    uint64_t blocks;
-    uint64_t bmap_reserved_blocks;
-    uint64_t offsets[8];
+    uint32_t used : 1;
+    uint32_t size : 31;
 };
-typedef struct memory_region memory_region_t;
 
-struct pmm_bitmap_iterator
+struct memory_area
 {
-    uint8_t valid;
-    uint16_t region;
-    uint64_t abs_bit;
-    uint64_t rel_bit;
+    struct memory_area* next;
+    uint32_t pages_total;
+    uint32_t pages_used;
+    uint32_t block_count;
+    struct memory_block blocks[];
 };
-typedef struct pmm_bitmap_iterator pmm_bitmap_iterator_t;
+typedef struct memory_area* memory_area_ptr;
 
-struct malloc_report
+struct pool_allocator
 {
-    void* data;
-    uint64_t size;
-};
-typedef struct malloc_report malloc_report_t;
-
-void* malloc(uint64_t size);
-void free(void* ptr, uint64_t size);
-void* malloc_page();
-void free_page(void* ptr);
-
-malloc_report_t malloc_ex(uint64_t size);
+    linked_list_t items;
+    uint32_t item_size;
+    uint16_t size;
+    uint16_t used;
+} __attribute__((aligned(8)));
+typedef struct pool_allocator pool_allocator_t;
 
 void init_memory_manager();
+void* malloc(uint64_t size);
+void free(void* ptr);
+void debug_verbose();
+
+void init_pool_allocator(pool_allocator_t* allocator, uint32_t item_size, uint32_t mem_size);
+pool_allocator_t* acquire_pool_allocator(uint32_t item_size, uint32_t mem_size);
+void dispose_pool_allocator(pool_allocator_t* allocator);
+
+void* fetch_pool(pool_allocator_t* alloc);
+void* fetch_zero_pool(pool_allocator_t* alloc);
+void drop_pool(pool_allocator_t* alloc, void* item);

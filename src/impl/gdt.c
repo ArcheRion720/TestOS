@@ -1,67 +1,69 @@
 #include "gdt.h"
-#include "memory/pmm.h"
-#include "utils.h"
-#include "hal.h"
-#include "terminal.h"
 
-gdtr_descriptor_t gdt[9];
+extern void reload_gdt_segments();
+
+static gdtr_descriptor_t gdt[11];
+tss_t tss = {0};
 
 void init_gdt()
 {
     __asm__ ("cli");
-    register_gdt(0, 0, 0, 0, 0); //null entry
+    register_gdt(GDT_NULL, 0, 0, 0, 0); //null entry 8
 
     register_gdt(
-        1, 0, 0xffff, 
+        GDT_CS0_16, 0, 0xffff, 
         GDT_KERNEL_BASE | GDT_EXEC, 
-        GDT_FL_GRAN);  //16 bit kernel code
+        GDT_FL_GRAN);  //16 bit kernel code 16
 
     register_gdt(
-        2, 0, 0xffff, 
+        GDT_DS0_16, 0, 0xffff, 
         GDT_KERNEL_BASE, 
-        GDT_FL_GRAN);  //16 bit kernel data
+        GDT_FL_GRAN);  //16 bit kernel data 24
 
     register_gdt(
-        3, 0, 0xffffffff, 
+        GDT_CS0_32, 0, 0xffffffff, 
         GDT_KERNEL_BASE | GDT_EXEC, 
         GDT_FL_GRAN | GDT_FL_32SEG); //32 bit kernel code
 
     register_gdt(
-        4, 0, 0xffffffff, 
+        GDT_DS0_32, 0, 0xffffffff, 
         GDT_KERNEL_BASE, 
         GDT_FL_GRAN | GDT_FL_32SEG); //32 bit kernel data
 
     register_gdt(
-        5, 0, 0,
+        GDT_CS0_64, 0, 0,
         GDT_KERNEL_BASE | GDT_EXEC, 
         GDT_FL_GRAN | GDT_FL_LONG); //64 bit kernel code
         
     register_gdt(
-        6, 0, 0, 
+        GDT_DS0_64, 0, 0, 
         GDT_KERNEL_BASE, 
         GDT_FL_GRAN | GDT_FL_LONG); //64 bit kernel data
 
     register_gdt(
-        7, 0, 0,
+        GDT_CS3_64, 0, 0,
         GDT_KERNEL_BASE | GDT_DPL_USER | GDT_EXEC,
         GDT_FL_GRAN | GDT_FL_LONG); //64 bit client code
 
     register_gdt(
-        8, 0, 0, 
+        GDT_DS3_64, 0, 0, 
         GDT_KERNEL_BASE | GDT_DPL_USER,
         GDT_FL_GRAN | GDT_FL_LONG); //64 bit client data
 
     gdtr_t ptr = {
-        .limit = sizeof(gdtr_descriptor_t) * 9 - 1,
+        .limit = sizeof(gdtr_descriptor_t) * 11 - 1,
         .base = (uint64_t)gdt
     };
 
-    out_serial_str(COM1, TEXT("pre"));
+    tss_descriptor_t* tss_desc = (tss_descriptor_t*)&gdt[GDT_TSS];
+    uintptr_t tss_addr = (uintptr_t)&tss;
+    register_gdt(GDT_TSS, (uint32_t)tss_addr, sizeof(tss), 0x89, 0x40);
+    tss_desc->base3263 = (uint32_t)(tss_addr >> 32);
 
-    __asm__ ("lgdt %0" :: "m"(ptr));
-    __asm__ ("sti");
-
-    out_serial_str(COM1, TEXT("post"));
+    __asm__ volatile ("lgdt %0" :: "m"(ptr));
+    reload_gdt_segments();
+    __asm__ volatile ("ltr %w0" :: "r"(GDT_SEGMENT_OFFSET(GDT_TSS)));
+    __asm__ volatile ("sti");
 }
 
 void register_gdt(uint8_t index, uint32_t base, uint32_t limit, uint8_t access, uint8_t flags)

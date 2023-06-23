@@ -1,10 +1,14 @@
 #include "interrupts.h"
 #include "hal.h"
+#include "gdt.h"
 
-idtr_descriptor_t IDT[256];
-isr_t handlers[256];
+static idtr_descriptor_t IDT[256];
+static isr_t handlers[256];
+static uint8_t isr_stack[4096];
 
-void init_intdt()
+extern tss_t tss;
+
+void init_idt()
 {
     idtr_t ptr = (idtr_t)
     {
@@ -13,6 +17,8 @@ void init_intdt()
     };
 
     __asm__("lidt %0" :: "m"(ptr));
+
+    tss.ist1 = (uintptr_t)&isr_stack + sizeof(isr_stack);
 
     register_intdt(0 , (uint64_t)&isr0 );
     register_intdt(1 , (uint64_t)&isr1 );
@@ -64,37 +70,31 @@ void init_intdt()
     register_intdt(46, (uint64_t)&irq14);
     register_intdt(47, (uint64_t)&irq15);
 
-    register_intdt(69, (uint64_t)&irq69);
-
     __asm__("sti");
-
-    log("Initialised interrupts");
 }
 
 void register_intdt(uint32_t code, uint64_t addr)
 {
     IDT[code].offset015 = (addr & 0xffff);
-    IDT[code].selector = 0x28;
-    IDT[code].zero = 0;
+    IDT[code].selector = GDT_SEGMENT_OFFSET(GDT_CS0_64);
+    IDT[code].ist = 1;
     IDT[code].type = 0x8E;
     IDT[code].offset1631 = (addr >> 16) & 0xFFFF;
     IDT[code].offset3263 = (addr >> 32);
     IDT[code].zerohigh = 0;
 }
 
-#define PRINT_REG(x) printf_ll(#x ": %ixq\n", regs.x);
+#define PRINT_REG(x) print_fmt(#x ":\t{xlong}\n", &regs.x);
 
 void isr_handler(registers_t regs)
-{
-    //printf("Interrupt => [%iu]\n", regs.interrupt);
-    
-    send_eoi(regs.interrupt - 32);
+{    
     if(regs.interrupt < 32)
     {
         //panic!
-        printf_ll("Error occured [%iu]\n", regs.interrupt);
-        printf_ll("Error code: [%iu]\n", regs.error);
-        printf_ll("rip: %ixq\n", regs.rip);
+        print_fmt("Error occured [{xlong}]\n", &regs.interrupt);
+        print_fmt("Error code: [{long}]\n", &regs.error);
+        PRINT_REG(rip);
+        print_fmt("General Purpose Registers:\n");
         PRINT_REG(rax);
         PRINT_REG(rbx);
         PRINT_REG(rcx);
@@ -102,7 +102,7 @@ void isr_handler(registers_t regs)
         PRINT_REG(rdi);
         PRINT_REG(rsi);
         PRINT_REG(rbp);
-        printf_ll("\n");
+        print_fmt("Control Registers:\n");
         PRINT_REG(cr2);
         PRINT_REG(cr3);
         PRINT_REG(cs);
@@ -111,15 +111,10 @@ void isr_handler(registers_t regs)
         PRINT_REG(fs);
         PRINT_REG(gs);
 
-        // for(uint32_t i = 0; i < 2; i++)
-        // {
-        //     //task_t* tsk = get_task(i);
-        //     //printf_ll("Process %iu CS: [%ixq]\n", tsk->id, tsk->regs.cs);
-        // }
-
         __asm__ ("hlt");
     }    
     
+    send_eoi(regs.interrupt - 32);
     if(regs.interrupt >= 32 && handlers[regs.interrupt] != 0)
     {
         isr_t handler = handlers[regs.interrupt];

@@ -29,7 +29,7 @@ string_t cstr(const uint8_t* str)
     return (string_t){ str, strlen(str) };
 }
 
-string_split_t splitstr(string_t string, uint8_t delimeter)
+string_split_t str_split(string_t string, uint8_t delimeter)
 {
     uint32_t index;
     for(index = 0; index < string.length; index++)
@@ -44,7 +44,7 @@ string_split_t splitstr(string_t string, uint8_t delimeter)
         }
     }
 
-    return (string_split_t) { 0 };
+    return (string_split_t) { string, 0 };
 }
 
 uint8_t str_cmp(string_t a, string_t b)

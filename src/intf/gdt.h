@@ -1,6 +1,19 @@
 #pragma once
 #include <stdint.h>
 
+#define GDT_NULL        0
+#define GDT_CS0_64      1
+#define GDT_DS0_64      2
+#define GDT_CS3_64      3
+#define GDT_DS3_64      4
+#define GDT_CS0_32      5
+#define GDT_DS0_32      6
+#define GDT_CS0_16      7
+#define GDT_DS0_16      8
+#define GDT_TSS         9
+
+#define GDT_SEGMENT_OFFSET(x) (x * sizeof(gdtr_descriptor_t))
+
 #define GDT_PRESENT     (1 << 7)
 #define GDT_DPL_USER    ((1 << 5) | (1 << 6))
 #define GDT_CODE_DATA   (1 << 4)
@@ -24,6 +37,14 @@ struct gdtr_descriptor
     uint8_t base2431;
 } __attribute__((packed));
 typedef struct gdtr_descriptor gdtr_descriptor_t;
+
+struct tss_descriptor
+{
+    struct gdtr_descriptor low_bits;
+    uint32_t base3263;
+    uint32_t reserved;
+} __attribute__((packed));
+typedef struct tss_descriptor tss_descriptor_t;
 
 struct gdtr
 {

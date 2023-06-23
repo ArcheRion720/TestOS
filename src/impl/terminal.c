@@ -1,7 +1,6 @@
 #include "terminal.h"
-#include "utils.h"
-// #include "sync.h"
 #include "limine.h"
+#include "print.h"
 
 static volatile struct limine_terminal_request terminal_request = {
     .id = LIMINE_TERMINAL_REQUEST,
@@ -22,11 +21,10 @@ void init_terminal()
     terminal = terminal_request.response->terminals[0];
     term_write = terminal_request.response->write;
 
-    // ticket_lock_init(PRINT_LOCK);
-    printf_ll("Initialised debug temrinal\n");
+    print_fmt("Initialised debug temrinal\n");
 }
 
-void terminal_write(const char* string, size_t length)
+void terminal_write(const uint8_t* string, size_t length)
 {
-    term_write(terminal, string, length);
+    term_write(terminal, (const char*)string, length);
 }

@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#include "common.h"
+#include "registers.h"
 
 void init_keyboard();
 uint8_t keyboard_enabled();

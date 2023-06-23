@@ -15,6 +15,7 @@ PHDRS
 SECTIONS
 {
     . = 0xffffffff80200000;
+    kaddr_start = .;
 
     .text : {
         *(.text*)
@@ -44,4 +45,6 @@ SECTIONS
         *(COMMON)
         *(.bss*)
     } :data
+
+    kaddr_end = .;
 }

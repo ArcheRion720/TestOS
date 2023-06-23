@@ -44,7 +44,7 @@ uint32_t inport32(uint16_t portId)
 {
     //big thanks to qookei for noticing there was uint16_t
     uint32_t result;
-    __asm__ ("inl %%dx, %%eax": "=a"(result) :"d"(portId));
+    __asm__ ("inl %%dx, %%eax": "=a"(result) : "d"(portId));
     return result;
 }
 
@@ -65,26 +65,26 @@ void outport32(uint16_t portId, uint32_t value)
 
 uint8_t init_serial(uint16_t com)
 {
-   outport8(com + 1, 0x00);
-   outport8(com + 3, 0x80);
-   outport8(com    , 0x03);
-   outport8(com + 1, 0x00);
-   outport8(com + 3, 0x03);
-   outport8(com + 2, 0xC7);
-   outport8(com + 4, 0x0B);
-   outport8(com + 4, 0x1E);
-   outport8(com    , 0xAE);
+    outport8(COM_INTERRUPT(com),    0x00);
+    outport8(COM_LINE_CONTROL(com), COM_DLAB_BIT);
+    outport8(COM_BAUD_LSB(com),     0x0C);
+    outport8(COM_BAUD_MSB(com),     0x00);
+    outport8(COM_LINE_CONTROL(com), 0x03);
+    outport8(COM_FIFO(com),         0xC7);
+    outport8(COM_MODEM(com),        0x0B);
+    outport8(COM_MODEM(com),        0x1E);
+    outport8(com, 0xAE);
 
     if(inport8(com) != 0xAE)
         return 1;
 
-    outport8(com + 4, 0x0F);
+    outport8(COM_MODEM(com), 0x0F);
     return 0;    
 }
 
 uint8_t serial_received(uint16_t com)
 {
-    return inport8(LINE_STATUS(com)) & 1;
+    return inport8(COM_LINE_STATUS(com)) & COM_LINE_READY;
 }
 
 uint8_t in_serial(uint16_t com)
@@ -97,7 +97,7 @@ uint8_t in_serial(uint16_t com)
 
 uint8_t is_transmit_empty(uint16_t com)
 {
-    return inport8(LINE_STATUS(com)) & 0x20;
+    return inport8(COM_LINE_STATUS(com)) & COM_LINE_FREE;
 }
 
 void out_serial(uint16_t com, uint8_t value)
@@ -115,7 +115,6 @@ void out_serial_str(uint16_t com, const char* str, uint32_t length)
         out_serial(com, str[i]);
     }
 }
-
 
 void io_wait(void)
 {

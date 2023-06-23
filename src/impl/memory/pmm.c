@@ -1,307 +1,228 @@
 #include <stddef.h>
 #include "memory/pmm.h"
+#include "memory/vmm.h"
 #include "utils.h"
-#include "common.h"
 #include "limine.h"
 #include "utils.h"
+#include "print.h"
 
-static volatile struct limine_memmap_request mmap_request = {
-    .id = LIMINE_MEMMAP_REQUEST,
-    .revision = 0
-};
+extern struct limine_memmap_request mmap_request;
+extern struct limine_hhdm_request hhdm_request;
 
-static uint16_t region_count;
-static memory_region_t regions[1024];
+static uint64_t usable_memory = 0;
+static memory_area_ptr memory_head = 0;
+static pool_allocator_t allocators;
+
+void print_mem_entry(struct limine_memmap_entry* e)
+{
+    print_fmt("Base: {xlong}\tLength: {xlong}\tType: {long}", &e->base, &e->length, &e->type);
+}
 
 void init_memory_manager()
 {
+    register_print_format("mem", print_mem_entry);
+
     if(mmap_request.response == NULL || mmap_request.response->entry_count == 0)
-    {
         return;
-    }
+
+    memory_area_ptr current = 0;
+    memory_area_ptr previous = 0;
 
     struct limine_memmap_entry* entry;
     for(uint64_t i = 0; i < mmap_request.response->entry_count; i++)
     {
         entry = mmap_request.response->entries[i];
+
+        print_fmt("{mem}\n", entry);
+
         if(entry->type != LIMINE_MEMMAP_USABLE)
             continue;
 
-        uint64_t blocks = entry->length / PMM_HBLOCK_SIZE;
-        uint64_t bmap_blocks = (PMM_ENTRY_BITS * blocks) / 8;
-        bmap_blocks = ALIGN_UP(bmap_blocks, PMM_HBLOCK_SIZE); //(bmap_blocks + 0x1FFF) & ~0x1FFF;
-        bmap_blocks /= PMM_HBLOCK_SIZE;
-        blocks -= bmap_blocks;
-
-        if(blocks == 0)
+        if(SIZE_IN_PAGES(entry->length) < 2)
             continue;
 
-        regions[region_count].base = entry->base;
-        regions[region_count].alloc_base = entry->base + (bmap_blocks * PMM_HBLOCK_SIZE);
-        regions[region_count].blocks = blocks;
-        regions[region_count].bmap_reserved_blocks = bmap_blocks;
+        current = (memory_area_ptr)entry->base;
+        current->pages_total = SIZE_IN_PAGES(entry->length) - 1;
+        current->pages_used = 0;
+        current->block_count = 1;
+        current->blocks[0].size = current->pages_total;
+        current->blocks[0].used = PMM_BLOCK_FREE;
 
-        for(uint8_t k = 0; k < 8; k++)
-        {
-            regions[region_count].offsets[k] = ((1 << k) - 1) * blocks;
-        }
+        if(previous)
+            previous->next = HH_ADDR(current);
+        else
+            memory_head = HH_ADDR(current);
 
-        region_count++;
+        usable_memory += (current->pages_total * PMM_PAGE_SIZE);
+        previous = current;
     }
 
-    log("Memory manager initialised!");
-}
-
-pmm_bitmap_iterator_t iterate_bitmap(uint64_t order)
-{
-    pmm_bitmap_iterator_t result;
-
-    uint64_t block_count;
-    uint64_t limit_min;
-    uint64_t limit_max;
-
-    uint64_t offset_min = (1 << order) - 1;
-    uint64_t offset_max = (1 << (order + 1)) - 1;
-    for(uint16_t i = 0; i < region_count; i++)
-    {
-        block_count = regions[i].blocks;
-        limit_min = block_count * offset_min;
-        limit_max = block_count * offset_max;
-        for(uint64_t bit = limit_min; bit < limit_max; bit++)
-        {
-            // Can be optimised
-            if(!TEST_BIT((uint8_t*)regions[i].base, bit))
-            {
-                result.valid = 1;
-                result.region = i;
-                result.abs_bit = bit;
-                result.rel_bit = bit - limit_min;
-
-                return result;
-            }
-        }
-    }
-
-    result.valid = 0;
-    return result;
-}
-
-pmm_bitmap_iterator_t iterate_bitmap_top(uint64_t blocks)
-{
-    pmm_bitmap_iterator_t result;
-    uint64_t conseq = 0;
-    uint64_t start_bit;
-
-    for(uint16_t i = 0; i < region_count; i++)
-    {
-        start_bit = 0;
-        conseq = 0;
-        for(uint64_t bit = 0; bit < regions[i].blocks; i++)
-        {
-            if(TEST_BIT((uint8_t*)regions[i].base, bit))
-            {
-                conseq = 0;
-            }
-            else
-            {
-                if(conseq == 0)
-                    start_bit = bit;
-
-                conseq++;
-            }
-
-            if(conseq == blocks)
-            {
-                result.valid = 1;
-                result.region = i;
-                result.abs_bit = start_bit;
-                result.rel_bit = start_bit;
-
-                return result;
-            }
-        }
-    }
-
-    result.valid = 0;
-    return result;
-}
-
-void set_bits_lower_order(memory_region_t* region, uint64_t order, uint64_t bit)
-{
-    if(order >= PMM_LOWEST_ORD)
-        return;
-
-    SET_BIT((uint8_t*)region->base, (region->offsets[order + 1] + 2 * bit    ));
-    SET_BIT((uint8_t*)region->base, (region->offsets[order + 1] + 2 * bit + 1));
-
-    set_bits_lower_order(region, order + 1, 2 * bit);
-    set_bits_lower_order(region, order + 1, 2 * bit + 1);
-}
-
-void clear_bits_lower_order(memory_region_t* region, uint64_t order, uint64_t bit)
-{
-    if(order >= PMM_LOWEST_ORD)
-        return;
-
-    CLEAR_BIT((uint8_t*)region->base, (region->offsets[order + 1] + 2 * bit    ));
-    CLEAR_BIT((uint8_t*)region->base, (region->offsets[order + 1] + 2 * bit + 1));
-
-    clear_bits_lower_order(region, order + 1, 2 * bit);
-    clear_bits_lower_order(region, order + 1, 2 * bit + 1);
-}
-
-void* malloc_span(uint64_t blocks)
-{
-    pmm_bitmap_iterator_t it = iterate_bitmap_top(blocks);
-
-    for(uint64_t bit = it.rel_bit; bit < it.rel_bit + blocks; bit++)
-    {
-        SET_BIT((uint8_t*)regions[it.region].base, bit);
-        set_bits_lower_order(&regions[it.region], 0, bit);
-    }
-
-    return (uint8_t*)regions[it.region].alloc_base + (it.rel_bit * PMM_HBLOCK_SIZE);
+    init_pool_allocator(&allocators, sizeof(pool_allocator_t), PMM_PAGE_SIZE);
 }
 
 void* malloc(uint64_t size)
 {
-    // ticket_lock_acquire(MEMORY_ALLOC_LOCK);
-    if(size == 0)
-        return 0;
+    uint32_t req_pages = SIZE_IN_PAGES(ALIGN_UP(size, PMM_PAGE_SIZE));
+    uint32_t pages_offset;
 
-    if(size > PMM_HBLOCK_SIZE)
+    for(memory_area_ptr ma = memory_head; LH_ADDR(ma); ma = ma->next)
     {
-        void* result = malloc_span(ALIGN_UP(size, PMM_HBLOCK_SIZE) / PMM_HBLOCK_SIZE);
-        // ticket_lock_release(MEMORY_ALLOC_LOCK);
-        return result;
-    }
-
-    size--;
-    uint64_t order;
-    asm("bsr %1, %0" : "=r"(order) : "r"(size));
-    order = 12 - order;
-
-    pmm_bitmap_iterator_t it = iterate_bitmap(order);
-    if(!it.valid)
-    {
-        // ticket_lock_release(MEMORY_ALLOC_LOCK);
-        return 0;
-    }
-
-    uint8_t* base = (uint8_t*)regions[it.region].base;
-    //uint64_t blocks = regions[it.region].blocks;
-
-    SET_BIT(base, it.abs_bit);
-
-    uint64_t itbit = it.rel_bit;
-    for(uint64_t o = order; o > 0; o--)
-    {
-        itbit /= 2;
-        uint64_t b = regions[it.region].offsets[o - 1] + itbit;
-        SET_BIT(base, b);
-    }
-
-    set_bits_lower_order(&regions[it.region], order, it.rel_bit);
-    // ticket_lock_release(MEMORY_ALLOC_LOCK);
-    return (uint8_t*)regions[it.region].alloc_base + (PMM_HBLOCK_SIZE / (1 << order) * it.rel_bit);
-}
-
-void free_span(void* ptr, uint64_t blocks)
-{
-    uintptr_t addr = (uintptr_t)ptr;
-    uint16_t reg;
-    for(reg = region_count; reg > 0; reg--)
-    {
-        if(regions[reg - 1].alloc_base < addr)
+        pages_offset = 1;
+        for(uint32_t i = 0; i < ma->block_count; i++)
         {
-            reg--;
-            break;
+            if(ma->blocks[i].used || ma->blocks[i].size < req_pages)
+            {
+                pages_offset += ma->blocks[i].size;
+                continue;
+            }
+
+            uint32_t remainder = ma->blocks[i].size - req_pages;
+            ma->blocks[i].used = PMM_BLOCK_USED;
+
+            if(remainder != 0)
+            {
+                if(ma->block_count != PMM_BLOCKS_LIMIT)
+                {
+                    ma->block_count++;
+                    ma->blocks[i].size = req_pages;
+                    if(i < ma->block_count - 1)
+                    {
+                        memmove(
+                            &ma->blocks[i], 
+                            &ma->blocks[i + 1], 
+                            (ma->block_count - i - 1) * sizeof(struct memory_block));
+                    }
+                    ma->blocks[i + 1].used = PMM_BLOCK_FREE;
+                    ma->blocks[i + 1].size = remainder;
+                }
+            }
+
+            return (void*)((uintptr_t)LH_ADDR(ma) + (pages_offset * PMM_PAGE_SIZE));
         }
     }
 
-    uint64_t bit = (addr - regions[reg].alloc_base) / PMM_HBLOCK_SIZE;
-    for(uint64_t i = 0; i < blocks; i++)
-    {
-        CLEAR_BIT((uint8_t*)regions[reg].base, bit);
-        clear_bits_lower_order(&regions[reg], 0, bit);
-    }
+    return 0;
 }
 
-void free(void* ptr, uint64_t size)
+uint8_t ptr_in_area_range(memory_area_ptr ma, uintptr_t addr)
 {
-    // ticket_lock_acquire(MEMORY_ALLOC_LOCK);
-    if(size > PMM_HBLOCK_SIZE)
-    {
-        free_span(ptr, ALIGN_UP(size, PMM_HBLOCK_SIZE) / PMM_HBLOCK_SIZE);
-        // ticket_lock_release(MEMORY_ALLOC_LOCK);
+    return (addr > (uintptr_t)ma) && (addr < ((uintptr_t)ma + (ma->pages_total + 1) * PMM_PAGE_SIZE));
+}
+
+#define PMM_MERGE_NON 0x0
+#define PMM_MERGE_BLL 0x1
+#define PMM_MERGE_BLR 0x2
+
+void free(void* ptr)
+{
+    if(((uintptr_t)ptr % PMM_PAGE_SIZE) != 0) 
         return;
-    }
 
-    uintptr_t addr = (uintptr_t)ptr;
-
-    size--;
-    uint64_t order;
-    asm("bsr %1, %0" : "=r"(order) : "r"(size));
-    order = 12 - order;
-
-    uint16_t reg;
-    for(reg = region_count; reg > 0; reg--)
+    for(memory_area_ptr ma = memory_head; LH_ADDR(ma); ma = ma->next)
     {
-        if(regions[reg - 1].alloc_base < addr)
+        if(!ptr_in_area_range(LH_ADDR(ma), (uintptr_t)ptr))
+            continue;
+
+        uint32_t blk_idx = 0;
+        uintptr_t addr = (uintptr_t)ma + PMM_PAGE_SIZE;
+        while(addr != (uintptr_t)ptr)
         {
-            reg--;
-            break;
+            addr += PMM_PAGE_SIZE * ma->blocks[blk_idx].size;
+            blk_idx++;
+        }
+
+        uint8_t mem_op = PMM_MERGE_NON;
+        if(blk_idx != 0 && ma->blocks[blk_idx - 1].used == PMM_BLOCK_FREE)
+            mem_op |= PMM_MERGE_BLL;
+
+        if(blk_idx != ma->block_count - 1 && ma->blocks[blk_idx + 1].used == PMM_BLOCK_FREE)
+            mem_op |= PMM_MERGE_BLR;
+
+        switch(mem_op)
+        {
+            case PMM_MERGE_BLL:
+                ma->blocks[blk_idx - 1].size += ma->blocks[blk_idx].size;
+                ROTL(ma->blocks, blk_idx, 1, ma->block_count, struct memory_block);
+                ma->block_count--;
+                return;
+            case PMM_MERGE_BLR:
+                ma->blocks[blk_idx].size += ma->blocks[blk_idx + 1].size;
+                ma->blocks[blk_idx].used = PMM_BLOCK_FREE;
+                ROTL(ma->blocks, blk_idx + 1, 1, ma->block_count, struct memory_block);
+                ma->block_count--;
+                return;
+            case (PMM_MERGE_BLL | PMM_MERGE_BLR):
+                ma->blocks[blk_idx - 1].size += ma->blocks[blk_idx].size + ma->blocks[blk_idx + 1].size;
+                ROTL(ma->blocks, blk_idx, 2, ma->block_count, struct memory_block);
+                ma->block_count -= 2;
+                return;
+            case PMM_MERGE_NON:
+                ma->blocks[blk_idx].used = PMM_BLOCK_FREE;
+                return;
+            default:  //should never happen
+                return;
         }
     }
+}
 
-    //uint64_t blocks = regions[reg].blocks;
-    uint64_t bit = ((addr - regions[reg].alloc_base) * (1 << order)) / PMM_HBLOCK_SIZE;
+void init_pool_allocator(pool_allocator_t* allocator, uint32_t item_size, uint32_t mem_size)
+{
+    void* block = HH_ADDR(malloc(mem_size));
+    
+    item_size = ALIGN_UP(item_size, 8);
+    uint32_t items_count = mem_size / item_size;
 
-    CLEAR_BIT((uint8_t*)regions[reg].base, regions[reg].offsets[order] + bit);
-    clear_bits_lower_order(&regions[reg], order, bit);
-
-    uint64_t ibit = bit;
-    for(uint64_t i = order; i > 0; i--)
+    *((struct link*)block) = LINKED_LIST(((struct link*)block)[0]);
+    for(uint32_t i = 1; i < items_count; i++)
     {
-        ibit ^= 1;
-        //Check buddy slot
-        if(TEST_BIT((uint8_t*)regions[reg].base, ibit))
-            break;
-        
-        //Merge
-        ibit /= 2;
-        CLEAR_BIT((uint8_t*)regions[reg - 1].base, ibit);
-    }
-    // ticket_lock_release(MEMORY_ALLOC_LOCK);
-}
-
-void* malloc_page()
-{
-    return malloc(PAGE_SIZE);
-}
-
-void free_page(void* ptr)
-{
-    return free(ptr, PAGE_SIZE);
-}
-
-malloc_report_t malloc_ex(uint64_t size)
-{
-    malloc_report_t report;
-    if(size > PMM_HBLOCK_SIZE)
-    {
-        report.size = (ALIGN_UP(size, PMM_HBLOCK_SIZE));
-        report.data = malloc(size);
-        return report;
+        struct link* prev = (struct link*)((uintptr_t)block + ((i - 1) * item_size));
+        struct link* curr = (struct link*)((uintptr_t)block + (i * item_size));
+        add_link_forward(curr, prev);
     }
 
-    size--;
-    uint64_t order;
-    asm("bsr %1, %0" : "=r"(order) : "r"(size));
-    order = 12 - order;
+    add_link_back(&allocator->items, (struct link*)block);
+    allocator->size = items_count;
+    allocator->used = 0;
+    allocator->item_size = item_size;
+}
 
-    report.size = PMM_HBLOCK_SIZE / (1 << order);
-    report.data = malloc(size);
+pool_allocator_t* acquire_pool_allocator(uint32_t item_size, uint32_t mem_size)
+{
+    pool_allocator_t* result = (pool_allocator_t*)HH_ADDR(fetch_pool(&allocators));
 
-    return report;
+    if(result == 0)
+        return 0;
+
+    init_pool_allocator(result, item_size, mem_size);
+    return result;
+}
+
+void dispose_pool_allocator(pool_allocator_t* allocator)
+{
+    drop_pool(&allocators, allocator);
+}
+
+void* fetch_pool(pool_allocator_t* alloc)
+{
+    struct link* it;
+    for_each_link(it, &alloc->items)
+    {
+        rem_link(it);
+        alloc->used++;
+        return LH_ADDR(it);
+    }
+
+    return 0;
+}
+
+void* fetch_zero_pool(pool_allocator_t* alloc)
+{
+    void* ptr = fetch_pool(alloc);
+    memset(HH_ADDR(ptr), 0, alloc->item_size);
+    return ptr;
+}
+
+void drop_pool(pool_allocator_t* alloc, void* item)
+{
+    add_link_forward(&alloc->items, (struct link*)item);
 }
