@@ -7,48 +7,48 @@ tss_t tss = {0};
 
 void init_gdt()
 {
-    __asm__ ("cli");
-    register_gdt(GDT_NULL, 0, 0, 0, 0); //null entry 8
+    __asm__ volatile ("cli");
+    register_gdt(GDT_NULL, 0, 0, 0, 0);
 
     register_gdt(
         GDT_CS0_16, 0, 0xffff, 
         GDT_KERNEL_BASE | GDT_EXEC, 
-        GDT_FL_GRAN);  //16 bit kernel code 16
+        GDT_FL_GRAN);
 
     register_gdt(
         GDT_DS0_16, 0, 0xffff, 
         GDT_KERNEL_BASE, 
-        GDT_FL_GRAN);  //16 bit kernel data 24
+        GDT_FL_GRAN);  
 
     register_gdt(
         GDT_CS0_32, 0, 0xffffffff, 
         GDT_KERNEL_BASE | GDT_EXEC, 
-        GDT_FL_GRAN | GDT_FL_32SEG); //32 bit kernel code
+        GDT_FL_GRAN | GDT_FL_32SEG);
 
     register_gdt(
         GDT_DS0_32, 0, 0xffffffff, 
         GDT_KERNEL_BASE, 
-        GDT_FL_GRAN | GDT_FL_32SEG); //32 bit kernel data
+        GDT_FL_GRAN | GDT_FL_32SEG);
 
     register_gdt(
         GDT_CS0_64, 0, 0,
         GDT_KERNEL_BASE | GDT_EXEC, 
-        GDT_FL_GRAN | GDT_FL_LONG); //64 bit kernel code
+        GDT_FL_GRAN | GDT_FL_LONG);
         
     register_gdt(
         GDT_DS0_64, 0, 0, 
         GDT_KERNEL_BASE, 
-        GDT_FL_GRAN | GDT_FL_LONG); //64 bit kernel data
+        GDT_FL_GRAN | GDT_FL_LONG);
 
     register_gdt(
         GDT_CS3_64, 0, 0,
         GDT_KERNEL_BASE | GDT_DPL_USER | GDT_EXEC,
-        GDT_FL_GRAN | GDT_FL_LONG); //64 bit client code
+        GDT_FL_GRAN | GDT_FL_LONG);
 
     register_gdt(
         GDT_DS3_64, 0, 0, 
         GDT_KERNEL_BASE | GDT_DPL_USER,
-        GDT_FL_GRAN | GDT_FL_LONG); //64 bit client data
+        GDT_FL_GRAN | GDT_FL_LONG);
 
     gdtr_t ptr = {
         .limit = sizeof(gdtr_descriptor_t) * 11 - 1,

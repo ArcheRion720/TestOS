@@ -37,6 +37,12 @@
 #define ELF_PH_TYPE_LOPROC  0x70000000
 #define ELF_PH_TYPE_HIPROC  0x7FFFFFFF
 
+#define ELF_PH_FLAG_EXEC    0x1
+#define ELF_PH_FLAG_WRIT    0x2
+#define ELF_PH_FLAG_READ    0x4
+
+#define ELF_STACK_SIZE      0x400000
+
 struct elf_header
 {
     uint8_t magic[4];

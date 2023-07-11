@@ -3,6 +3,7 @@
 #include "gdt.h"
 #include "syscall.h"
 #include "msr.h"
+#include "print.h"
 
 static uint8_t syscall_stack[8192];
 extern void syscall_stub();
@@ -29,7 +30,8 @@ void init_syscall()
     wrmsr(MSR_SYSENTER_IP, ip);
 }
 
-void syscall_handler(uint64_t sp3, uint64_t ip3)
+void syscall_handler(/*uint64_t sp3, uint64_t ip3*/)
 {
-    __asm__ volatile ("nop");
+    print_fmt("System call from user mode!\n");
+    __asm__ volatile ("hlt");
 }

@@ -127,3 +127,41 @@ uintptr_t read_cr3()
     asm ("mov %%cr3, %0" : "=r"(result));
     return result;
 }
+
+void mask_irq(uint8_t irq)
+{
+    uint16_t port;
+    uint8_t value;
+
+    if(irq < 8)
+    {
+        port = PIC_MASTER_DATA;
+    }
+    else
+    {
+        port = PIC_SLAVE_DATA;
+        irq -= 8;
+    }
+
+    value = inport8(irq) | (1 << irq);
+    outport8(port, value);
+}
+
+void clear_irq(uint8_t irq)
+{
+    uint16_t port;
+    uint8_t value;
+
+    if(irq < 8)
+    {
+        port = PIC_MASTER_DATA;
+    }
+    else
+    {
+        port = PIC_SLAVE_DATA;
+        irq -= 8;
+    }
+
+    value = inport8(irq) & ~(1 << irq);
+    outport8(port, value);
+}

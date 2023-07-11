@@ -28,10 +28,36 @@ void initialize()
     // init_ahci();
 }
 
+extern uint8_t test_elf_file[];
+
+extern void user_jmp(uintptr_t rsp, uintptr_t rip);
+
 void kernel_start(void)
 {
     initialize();
-    scheduler_start();
+
+    process_t* proc = process_obj_create();
+    proc->priority = 100;
+    proc->pcid = 150;
+
+    proc->registers.cs = GDT_SEGMENT_OFFSET(GDT_CS3_64) | 3;
+    proc->registers.ds = GDT_SEGMENT_OFFSET(GDT_DS3_64) | 3;
+    proc->registers.es = GDT_SEGMENT_OFFSET(GDT_DS3_64) | 3;
+    proc->registers.fs = GDT_SEGMENT_OFFSET(GDT_DS3_64) | 3;
+    proc->registers.gs = GDT_SEGMENT_OFFSET(GDT_DS3_64) | 3;
+    proc->registers.rflags = REG_FLAG_IF | 2;
+
+    uintptr_t elf_entry = load_elf((elf_header_t*)&test_elf_file, proc);
+
+    vmm_load_memmap(proc->registers.cr3);
+    user_jmp(proc->registers.rsp, proc->registers.rip);
+
+    // schedule_process(proc);
+
+    // print_fmt("ELF loaded!");
+    // scheduler_start();
+
+    
 
     for(;;)
     {

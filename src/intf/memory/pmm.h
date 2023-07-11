@@ -29,7 +29,7 @@ typedef struct memory_area* memory_area_ptr;
 
 struct pool_allocator
 {
-    linked_list_t items;
+    struct link items;
     uint32_t item_size;
     uint16_t size;
     uint16_t used;

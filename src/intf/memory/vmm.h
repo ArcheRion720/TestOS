@@ -4,7 +4,7 @@
 
 #define VMM_FLAG_PRESENT        (1 << 0)
 #define VMM_FLAG_READ_WRITE     (1 << 1)
-#define VMM_FLAG_SUPERUSER_PAGE (1 << 2)
+#define VMM_FLAG_USER_PAGE      (1 << 2)
 #define VMM_FLAG_WRITETHROUGH   (1 << 3)
 #define VMM_FLAG_CACHE_DISABLE  (1 << 4)
 #define VMM_FLAG_ACCESSED       (1 << 5)
@@ -29,4 +29,4 @@ void vmm_map(pool_allocator_t* frame_allocator, uint64_t* pml4, uintptr_t phys, 
 void vmm_create_memmap(pool_allocator_t* frame_allocator, uint16_t pcid, uintptr_t** pml4);
 uintptr_t get_hhdm();
 uintptr_t get_kernel_offset();
-uintptr_t vmm_alloc(pool_allocator_t* alloc, uintptr_t* pml4, uint16_t pcid, uintptr_t virtual_addr);
+uintptr_t vmm_alloc(pool_allocator_t* alloc, uintptr_t* pml4, uint16_t pcid, uintptr_t virtual_addr, uint64_t flags);

@@ -102,6 +102,7 @@ uintptr_t load_elf(elf_header_t* elf, process_t* process)
 
     #define ELF_PROG_HEADER(idx) ((elf_program_header_t*)((uintptr_t)elf + (uintptr_t)elf->ph_off + (elf->ph_ent_size * idx)))
 
+    uintptr_t eof = 0;
     for(uint32_t i = 0; i < elf->ph_num; i++)
     {
         elf_program_header_t* ph = ELF_PROG_HEADER(i);
@@ -109,9 +110,12 @@ uintptr_t load_elf(elf_header_t* elf, process_t* process)
             continue;
 
         memsize += ph->memsz;
+
+        if((ph->vaddr + ph->memsz) > eof)
+            eof = (ph->vaddr + ph->memsz);
     }
 
-    process->page_allocator = acquire_pool_allocator(PMM_PAGE_SIZE, ALIGN_UP(memsize, PMM_PAGE_SIZE) + 2500 * PMM_PAGE_SIZE);
+    process->page_allocator = acquire_pool_allocator(PMM_PAGE_SIZE, ALIGN_UP(memsize + ELF_STACK_SIZE, PMM_PAGE_SIZE) + 2500 * PMM_PAGE_SIZE);
     // process->registers.cr3 = fetch_zero_pool(process->page_allocator);
     vmm_create_memmap(process->page_allocator, process->pcid, &process->registers.cr3);
 
@@ -124,18 +128,33 @@ uintptr_t load_elf(elf_header_t* elf, process_t* process)
         if(ph->type != ELF_PH_TYPE_LOAD)
             continue;
 
+        // uint64_t flags = 0;
+        // if(ph->flags & ELF_PH_FLAG_WRIT)
+        //     flags |= VMM_FLAG_READ_WRITE;
+        
+        // if((ph->flags & ELF_PH_FLAG_EXEC) == 0)
+        //     flags |= VMM_FLAG_XD;
+
         for(uintptr_t addr = ph->vaddr; addr < (ph->vaddr + ph->memsz); addr += PMM_PAGE_SIZE)
         {
-            vmm_alloc(process->page_allocator, process->registers.cr3, process->pcid, addr);
+            vmm_alloc(process->page_allocator, process->registers.cr3, process->pcid, addr, VMM_FLAG_READ_WRITE | VMM_FLAG_USER_PAGE);
         }
 
         uintptr_t ph_off = (uintptr_t)elf + ph->offset;
         memcpy((uint8_t*)ph_off, (uint8_t*)ph->vaddr, ph->filesz);
     }
 
-    vmm_load_memmap(current_map);
-
     #undef ELF_PROG_HEADER
+
+    uintptr_t stack_start = ALIGN_UP(eof, PMM_PAGE_SIZE);
+    for(uintptr_t addr = stack_start; addr < stack_start + ELF_STACK_SIZE; addr += PMM_PAGE_SIZE)
+    {
+        vmm_alloc(process->page_allocator, process->registers.cr3, process->pcid, addr, VMM_FLAG_READ_WRITE | VMM_FLAG_USER_PAGE);
+    }
+
+    process->registers.rsp = stack_start + ELF_STACK_SIZE;
+    process->registers.rip = elf->entry;
+    vmm_load_memmap(current_map);
 
     return elf->entry;
 }

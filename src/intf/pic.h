@@ -52,4 +52,3 @@
 #define PIC_ICW4_SFNM_NOTNESTED 0
 
 void init_pic();
-void pic_send_eoi(uint8_t irq);

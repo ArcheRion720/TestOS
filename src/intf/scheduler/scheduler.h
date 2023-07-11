@@ -7,7 +7,7 @@
 
 struct process
 {
-    struct link* prev, next;
+    struct link node;
     uint64_t priority;
     uint64_t quants;
     uint16_t pcid;

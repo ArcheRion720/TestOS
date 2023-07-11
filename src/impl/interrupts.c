@@ -1,6 +1,7 @@
 #include "interrupts.h"
 #include "hal.h"
 #include "gdt.h"
+#include "memory/vmm.h"
 
 static idtr_descriptor_t IDT[256];
 static isr_t handlers[256];
@@ -112,7 +113,7 @@ void isr_handler(registers_t regs)
         PRINT_REG(gs);
 
         __asm__ ("hlt");
-    }    
+    }
     
     send_eoi(regs.interrupt - 32);
     if(regs.interrupt >= 32 && handlers[regs.interrupt] != 0)

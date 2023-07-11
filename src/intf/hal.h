@@ -61,4 +61,7 @@ uint8_t in_serial(uint16_t com);
 void out_serial(uint16_t com, uint8_t value);
 void out_serial_str(uint16_t com, const char* str, uint32_t length);
 
+void clear_irq(uint8_t irq);
+void mask_irq(uint8_t irq);
+
 uintptr_t read_cr3();

@@ -4,12 +4,12 @@
 #define GDT_NULL        0
 #define GDT_CS0_64      1
 #define GDT_DS0_64      2
-#define GDT_CS3_64      3
-#define GDT_DS3_64      4
-#define GDT_CS0_32      5
-#define GDT_DS0_32      6
-#define GDT_CS0_16      7
-#define GDT_DS0_16      8
+#define GDT_CS3_64      6
+#define GDT_DS3_64      7
+#define GDT_CS0_16      3
+#define GDT_DS0_16      4
+#define GDT_DS0_32      5
+#define GDT_CS0_32      8
 #define GDT_TSS         9
 
 #define GDT_SEGMENT_OFFSET(x) (x * sizeof(gdtr_descriptor_t))

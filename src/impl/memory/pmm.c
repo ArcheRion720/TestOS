@@ -172,15 +172,16 @@ void init_pool_allocator(pool_allocator_t* allocator, uint32_t item_size, uint32
     item_size = ALIGN_UP(item_size, 8);
     uint32_t items_count = mem_size / item_size;
 
-    *((struct link*)block) = LINKED_LIST(((struct link*)block)[0]);
-    for(uint32_t i = 1; i < items_count; i++)
+    allocator->items.next = &allocator->items;
+    allocator->items.prev = &allocator->items;
+
+    // *((struct link*)block) = LINKED_LIST(((struct link*)block)[0]);
+    for(uint32_t i = 0; i < items_count; i++)
     {
-        struct link* prev = (struct link*)((uintptr_t)block + ((i - 1) * item_size));
-        struct link* curr = (struct link*)((uintptr_t)block + (i * item_size));
-        add_link_forward(curr, prev);
+        struct link* item = (struct link*)((uintptr_t)block + (i * item_size));
+        linked_list_add_forward(item, &allocator->items);
     }
 
-    add_link_back(&allocator->items, (struct link*)block);
     allocator->size = items_count;
     allocator->used = 0;
     allocator->item_size = item_size;
@@ -204,14 +205,27 @@ void dispose_pool_allocator(pool_allocator_t* allocator)
 
 void* fetch_pool(pool_allocator_t* alloc)
 {
-    struct link* it;
-    for_each_link(it, &alloc->items)
+    if(alloc->used == alloc->size)
     {
-        rem_link(it);
+        __builtin_trap();
+    }
+
+    struct link* it;
+    linked_list_foreach_link(it, &alloc->items)
+    {
+        linked_list_remove(it);
         alloc->used++;
         return LH_ADDR(it);
     }
 
+    // for_each_link(it, &alloc->items)
+    // {
+    //     rem_link(it);
+    //     alloc->used++;
+    //     return LH_ADDR(it);
+    // }
+
+    __builtin_trap();
     return 0;
 }
 
@@ -224,5 +238,6 @@ void* fetch_zero_pool(pool_allocator_t* alloc)
 
 void drop_pool(pool_allocator_t* alloc, void* item)
 {
-    add_link_forward(&alloc->items, (struct link*)item);
+    //add_link_forward(&alloc->items, (struct link*)item);
+    linked_list_add_forward(&item, &alloc->items);
 }

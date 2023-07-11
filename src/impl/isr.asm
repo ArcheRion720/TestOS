@@ -1,10 +1,8 @@
 %include "src/impl/macros.asm"
 
 isr_common:
-    ; push all registers onto stack
     push_all
 
-    ; set segment registers 
     mov ax, 0x10
     mov ds, ax
     mov ss, ax
@@ -20,7 +18,6 @@ isr_common:
 	sti
 
     pop_all
-    ; discard interrupt number and error code pushed by stub
     add rsp, 16
 
     iretq

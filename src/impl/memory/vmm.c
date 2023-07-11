@@ -47,13 +47,18 @@ void vmm_map(pool_allocator_t* frame_allocator, uintptr_t* pml4, uintptr_t phys,
     if(!pml4)
         return;
 
-    pml4 = HH_ADDR(pml4);
+    pml4 = HH_ADDR(pml4) & 0xFFFFFFFFFFFFF000;
 
     if((phys % PMM_PAGE_SIZE != 0) || (virt % PMM_PAGE_SIZE != 0))
         return;
 
     struct page_index index = get_page_indices(virt);
     const uintptr_t hhdm = get_hhdm();
+
+    if(pcid != 0)
+    {
+        print_fmt("Mapped: {short}:{short}:{short}:{short}\n", &index.pml4e, &index.pdpte, &index.pde, &index.pte);
+    }
 
     if(!(pml4[index.pml4e] & VMM_FLAG_PRESENT))
     {
@@ -78,7 +83,7 @@ void vmm_map(pool_allocator_t* frame_allocator, uintptr_t* pml4, uintptr_t phys,
 
     //handle already mapped page
     if(pt[index.pte] & VMM_FLAG_PRESENT)
-    { return; }
+    { __builtin_trap(); }
 
     pt[index.pte] = phys | flags | VMM_FLAG_PRESENT;
 }
@@ -98,7 +103,14 @@ void vmm_create_kernel_memmap(pool_allocator_t* frame_allocator, uintptr_t** pml
 
         for(uintptr_t addr = ALIGN_DOWN(entry->base, PMM_PAGE_SIZE); addr < (entry->base + entry->length); addr += PMM_PAGE_SIZE)
         {
-            vmm_map(frame_allocator, pml4_alloc, addr, addr + hhdm, 0, VMM_FLAG_READ_WRITE | VMM_FLAG_SUPERUSER_PAGE | VMM_FLAG_GLOBAL);
+            vmm_map(
+                frame_allocator,
+                pml4_alloc, 
+                addr, 
+                addr + hhdm, 
+                0, 
+                VMM_FLAG_READ_WRITE | VMM_FLAG_GLOBAL
+            );
         }
     }
 
@@ -106,7 +118,14 @@ void vmm_create_kernel_memmap(pool_allocator_t* frame_allocator, uintptr_t** pml
     uintptr_t kernel_virt = kernel_addr_request.response->virtual_base;
     for(uintptr_t offset = 0x0; offset < kernel_length; offset += PMM_PAGE_SIZE)
     {
-        vmm_map(frame_allocator, pml4_alloc, kernel_phys + offset, kernel_virt + offset, 0, VMM_FLAG_READ_WRITE | VMM_FLAG_SUPERUSER_PAGE | VMM_FLAG_GLOBAL);
+        vmm_map(
+            frame_allocator, 
+            pml4_alloc, 
+            kernel_phys + offset, 
+            kernel_virt + offset, 
+            0, 
+            VMM_FLAG_READ_WRITE | VMM_FLAG_GLOBAL
+        );
     }
 }
 
@@ -124,9 +143,11 @@ void vmm_create_memmap(pool_allocator_t* frame_allocator, uint16_t pcid, uintptr
 
     pml4_alloc = HH_ADDR(pml4_alloc);
 
+    uint64_t* kmap = (uint64_t*)HH_ADDR(vmm_pml_kernel); 
+
     for(uint32_t i = 256; i < 512; i++)
     {
-        pml4_alloc[i] = vmm_pml_kernel[i];
+        pml4_alloc[i] = kmap[i];
     }
 }
 
@@ -154,7 +175,8 @@ void vmm_invalidate(vmm_invalidate_desc_t desc)
     if(desc.addr == 0)
         __builtin_trap();
 
-    __asm__ volatile ("invlpg (%0)" :: "r"(desc.addr) : "memory");
+    if(desc.addr != 0)
+        __asm__ volatile ("invlpg (%0)" :: "r"(desc.addr) : "memory");
 }
 
 uintptr_t get_hhdm()
@@ -183,11 +205,15 @@ void init_virtual_memory()
     vmm_load_memmap(vmm_pml_kernel);
 }
 
-uintptr_t vmm_alloc(pool_allocator_t* alloc, uintptr_t* pml4, uint16_t pcid, uintptr_t virtual_addr)
+uintptr_t vmm_alloc(pool_allocator_t* alloc, uintptr_t* pml4, uint16_t pcid, uintptr_t virtual_addr, uint64_t flags)
 {
     virtual_addr = ALIGN_DOWN(virtual_addr, PMM_PAGE_SIZE);
     uintptr_t ptr = (uintptr_t)fetch_zero_pool(alloc);
-    vmm_map(alloc, pml4, ptr, virtual_addr, pcid, VMM_FLAG_READ_WRITE);
+    vmm_map(alloc, pml4, ptr, virtual_addr, pcid, flags);
+
+    print_fmt("Virtualy allocated: {xlong}:{xlong}\n", &ptr, &virtual_addr);
+    //TODO: Check is pml4 current address space before invalidation
+
     vmm_invalidate_desc_t desc = 
     {
         .addr = virtual_addr,

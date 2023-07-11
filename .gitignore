@@ -56,3 +56,4 @@ dist/
 
 # Drive images
 *.img
+.gdbinit
