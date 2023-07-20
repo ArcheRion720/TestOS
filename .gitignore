@@ -56,4 +56,7 @@ dist/
 
 # Drive images
 *.img
+
+# Debug config
 .gdbinit
+.vscode/

@@ -57,7 +57,7 @@ void init_memory_manager()
         previous = current;
     }
 
-    init_pool_allocator(&allocators, sizeof(pool_allocator_t), PMM_PAGE_SIZE);
+    pool_allocator_create(&allocators, sizeof(pool_allocator_t), PMM_PAGE_SIZE);
 }
 
 void* malloc(uint64_t size)
@@ -165,7 +165,7 @@ void free(void* ptr)
     }
 }
 
-void init_pool_allocator(pool_allocator_t* allocator, uint32_t item_size, uint32_t mem_size)
+void pool_allocator_create(pool_allocator_t* allocator, uint32_t item_size, uint32_t mem_size)
 {
     void* block = HH_ADDR(malloc(mem_size));
     
@@ -187,23 +187,23 @@ void init_pool_allocator(pool_allocator_t* allocator, uint32_t item_size, uint32
     allocator->item_size = item_size;
 }
 
-pool_allocator_t* acquire_pool_allocator(uint32_t item_size, uint32_t mem_size)
+pool_allocator_t* pool_allocator_acquire(uint32_t item_size, uint32_t mem_size)
 {
-    pool_allocator_t* result = (pool_allocator_t*)HH_ADDR(fetch_pool(&allocators));
+    pool_allocator_t* result = (pool_allocator_t*)HH_ADDR(pool_fetch(&allocators));
 
     if(result == 0)
         return 0;
 
-    init_pool_allocator(result, item_size, mem_size);
+    pool_allocator_create(result, item_size, mem_size);
     return result;
 }
 
-void dispose_pool_allocator(pool_allocator_t* allocator)
+void pool_allocator_dispose(pool_allocator_t* allocator)
 {
-    drop_pool(&allocators, allocator);
+    pool_drop(&allocators, allocator);
 }
 
-void* fetch_pool(pool_allocator_t* alloc)
+void* pool_fetch(pool_allocator_t* alloc)
 {
     if(alloc->used == alloc->size)
     {
@@ -218,26 +218,19 @@ void* fetch_pool(pool_allocator_t* alloc)
         return LH_ADDR(it);
     }
 
-    // for_each_link(it, &alloc->items)
-    // {
-    //     rem_link(it);
-    //     alloc->used++;
-    //     return LH_ADDR(it);
-    // }
 
     __builtin_trap();
     return 0;
 }
 
-void* fetch_zero_pool(pool_allocator_t* alloc)
+void* pool_fetch_zero(pool_allocator_t* alloc)
 {
-    void* ptr = fetch_pool(alloc);
+    void* ptr = pool_fetch(alloc);
     memset(HH_ADDR(ptr), 0, alloc->item_size);
     return ptr;
 }
 
-void drop_pool(pool_allocator_t* alloc, void* item)
+void pool_drop(pool_allocator_t* alloc, void* item)
 {
-    //add_link_forward(&alloc->items, (struct link*)item);
     linked_list_add_forward(&item, &alloc->items);
 }

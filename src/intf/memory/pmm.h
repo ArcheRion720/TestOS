@@ -39,12 +39,11 @@ typedef struct pool_allocator pool_allocator_t;
 void init_memory_manager();
 void* malloc(uint64_t size);
 void free(void* ptr);
-void debug_verbose();
 
-void init_pool_allocator(pool_allocator_t* allocator, uint32_t item_size, uint32_t mem_size);
-pool_allocator_t* acquire_pool_allocator(uint32_t item_size, uint32_t mem_size);
-void dispose_pool_allocator(pool_allocator_t* allocator);
+void pool_allocator_create(pool_allocator_t* allocator, uint32_t item_size, uint32_t mem_size);
+pool_allocator_t* pool_allocator_acquire(uint32_t item_size, uint32_t mem_size);
+void pool_allocator_dispose(pool_allocator_t* allocator);
 
-void* fetch_pool(pool_allocator_t* alloc);
-void* fetch_zero_pool(pool_allocator_t* alloc);
-void drop_pool(pool_allocator_t* alloc, void* item);
+void* pool_fetch(pool_allocator_t* alloc);
+void* pool_fetch_zero(pool_allocator_t* alloc);
+void pool_drop(pool_allocator_t* alloc, void* item);

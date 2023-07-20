@@ -84,6 +84,11 @@ void print_uns(uintmax_t value)
     }
 }
 
+void print_char(uint8_t value)
+{
+    print_char_function(value);
+}
+
 const uint8_t* digits_dict = (const uint8_t*)"0123456789ABCDEF";
 
 void print_hex(uint8_t hex_size, uintmax_t value)
@@ -134,4 +139,6 @@ void init_print(print_char_func_ptr func)
     register_print_format("xshort", print_hex16);
     register_print_format("xint", print_hex32);
     register_print_format("xlong", print_hex64);
+
+    register_print_format("char", print_char);
 }

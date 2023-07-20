@@ -1,4 +1,5 @@
 #include "kernel.h"
+#include "devmgr.h"
 #include "print.h"
 #include "limine.h"
 
@@ -23,41 +24,26 @@ void initialize()
 
     init_syscall();
     init_scheduler();
-    // init_pci();
-    // init_rtc();
-    // init_ahci();
+    init_devices();
+    init_serial_devices();
 }
-
-extern uint8_t test_elf_file[];
-
-extern void user_jmp(uintptr_t rsp, uintptr_t rip);
 
 void kernel_start(void)
 {
     initialize();
 
-    process_t* proc = process_obj_create();
-    proc->priority = 100;
-    proc->pcid = 150;
+    struct device_meta* dev = query_device("COM1");
+    if(dev)
+    {
+        struct stream_device* sdev = (struct stream_device*)dev->assoc_dev;
 
-    proc->registers.cs = GDT_SEGMENT_OFFSET(GDT_CS3_64) | 3;
-    proc->registers.ds = GDT_SEGMENT_OFFSET(GDT_DS3_64) | 3;
-    proc->registers.es = GDT_SEGMENT_OFFSET(GDT_DS3_64) | 3;
-    proc->registers.fs = GDT_SEGMENT_OFFSET(GDT_DS3_64) | 3;
-    proc->registers.gs = GDT_SEGMENT_OFFSET(GDT_DS3_64) | 3;
-    proc->registers.rflags = REG_FLAG_IF | 2;
-
-    uintptr_t elf_entry = load_elf((elf_header_t*)&test_elf_file, proc);
-
-    vmm_load_memmap(proc->registers.cr3);
-    user_jmp(proc->registers.rsp, proc->registers.rip);
-
-    // schedule_process(proc);
-
-    // print_fmt("ELF loaded!");
-    // scheduler_start();
-
-    
+        uint8_t item;
+        for(;;)
+        {
+            if(sdev->read(dev, &item, 0, 1))
+                print_fmt("{char}", item);
+        }
+    }
 
     for(;;)
     {

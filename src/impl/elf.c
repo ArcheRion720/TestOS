@@ -115,8 +115,8 @@ uintptr_t load_elf(elf_header_t* elf, process_t* process)
             eof = (ph->vaddr + ph->memsz);
     }
 
-    process->page_allocator = acquire_pool_allocator(PMM_PAGE_SIZE, ALIGN_UP(memsize + ELF_STACK_SIZE, PMM_PAGE_SIZE) + 2500 * PMM_PAGE_SIZE);
-    // process->registers.cr3 = fetch_zero_pool(process->page_allocator);
+    process->page_allocator = pool_allocator_acquire(PMM_PAGE_SIZE, ALIGN_UP(memsize + ELF_STACK_SIZE, PMM_PAGE_SIZE) + 2500 * PMM_PAGE_SIZE);
+    // process->registers.cr3 = pool_fetch_zero(process->page_allocator);
     vmm_create_memmap(process->page_allocator, process->pcid, &process->registers.cr3);
 
     uintptr_t current_map = vmm_read_memmap();

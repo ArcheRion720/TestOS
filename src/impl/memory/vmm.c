@@ -62,21 +62,21 @@ void vmm_map(pool_allocator_t* frame_allocator, uintptr_t* pml4, uintptr_t phys,
 
     if(!(pml4[index.pml4e] & VMM_FLAG_PRESENT))
     {
-        pml4[index.pml4e] = (uintptr_t)fetch_zero_pool(frame_allocator) | flags | VMM_FLAG_PRESENT;
+        pml4[index.pml4e] = (uintptr_t)pool_fetch_zero(frame_allocator) | flags | VMM_FLAG_PRESENT;
     }
 
     uint64_t* pdpt = ENTRY_ADDR(pml4[index.pml4e]);
 
     if(!(pdpt[index.pdpte] & VMM_FLAG_PRESENT))
     {
-        pdpt[index.pdpte] = (uintptr_t)fetch_zero_pool(frame_allocator) | flags | VMM_FLAG_PRESENT;
+        pdpt[index.pdpte] = (uintptr_t)pool_fetch_zero(frame_allocator) | flags | VMM_FLAG_PRESENT;
     }
 
     uint64_t* pd = ENTRY_ADDR(pdpt[index.pdpte]);
 
     if(!(pd[index.pde] & VMM_FLAG_PRESENT))
     {
-        pd[index.pde] = (uintptr_t)fetch_zero_pool(frame_allocator) | flags | VMM_FLAG_PRESENT;
+        pd[index.pde] = (uintptr_t)pool_fetch_zero(frame_allocator) | flags | VMM_FLAG_PRESENT;
     }
 
     uint64_t* pt = ENTRY_ADDR(pd[index.pde]);
@@ -93,7 +93,7 @@ void vmm_create_kernel_memmap(pool_allocator_t* frame_allocator, uintptr_t** pml
     const uintptr_t kernel_length = (uintptr_t)(&kaddr_end) - (uintptr_t)(&kaddr_start);
     const uintptr_t hhdm = get_hhdm();
 
-    uint64_t* pml4_alloc = fetch_zero_pool(frame_allocator);
+    uint64_t* pml4_alloc = pool_fetch_zero(frame_allocator);
     *pml4 = pml4_alloc;
 
     struct limine_memmap_entry* entry;
@@ -131,7 +131,7 @@ void vmm_create_kernel_memmap(pool_allocator_t* frame_allocator, uintptr_t** pml
 
 void vmm_create_memmap(pool_allocator_t* frame_allocator, uint16_t pcid, uintptr_t** pml4)
 {
-    uint64_t* pml4_alloc = fetch_zero_pool(frame_allocator);
+    uint64_t* pml4_alloc = pool_fetch_zero(frame_allocator);
     if(pcid_supported)
     {
         *pml4 = (uintptr_t)pml4_alloc | (pcid & 0xFFF);
@@ -200,7 +200,7 @@ void init_virtual_memory()
         pcid_supported = 1;
     }
 
-    pool_allocator_t* alloc = acquire_pool_allocator(PMM_PAGE_SIZE, 2048 * PMM_PAGE_SIZE);
+    pool_allocator_t* alloc = pool_allocator_acquire(PMM_PAGE_SIZE, 2048 * PMM_PAGE_SIZE);
     vmm_create_kernel_memmap(alloc, &vmm_pml_kernel);
     vmm_load_memmap(vmm_pml_kernel);
 }
@@ -208,7 +208,7 @@ void init_virtual_memory()
 uintptr_t vmm_alloc(pool_allocator_t* alloc, uintptr_t* pml4, uint16_t pcid, uintptr_t virtual_addr, uint64_t flags)
 {
     virtual_addr = ALIGN_DOWN(virtual_addr, PMM_PAGE_SIZE);
-    uintptr_t ptr = (uintptr_t)fetch_zero_pool(alloc);
+    uintptr_t ptr = (uintptr_t)pool_fetch_zero(alloc);
     vmm_map(alloc, pml4, ptr, virtual_addr, pcid, flags);
 
     print_fmt("Virtualy allocated: {xlong}:{xlong}\n", &ptr, &virtual_addr);

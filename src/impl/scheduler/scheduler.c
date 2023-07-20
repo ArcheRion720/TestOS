@@ -19,10 +19,10 @@ static uint8_t idle_task_stack[512];
 
 void init_scheduler()
 {
-    task_allocator = acquire_pool_allocator(sizeof(process_t), sizeof(process_t) * 200);
+    task_allocator = pool_allocator_acquire(sizeof(process_t), sizeof(process_t) * 200);
     scheduler.rng_state = 9223372036854775810ULL;
         
-    process_t* idle_task = (process_t*)HH_ADDR(fetch_zero_pool(task_allocator));
+    process_t* idle_task = (process_t*)HH_ADDR(pool_fetch_zero(task_allocator));
     idle_task->priority = 1;
     idle_task->registers.cs = GDT_SEGMENT_OFFSET(GDT_CS0_64);
     idle_task->registers.ds = GDT_SEGMENT_OFFSET(GDT_DS0_64);
@@ -57,16 +57,7 @@ process_t* get_next_task()
 
         ticket -= it->priority;
     }
-
-
-    // // for_each_link(process_t*, it, &tasks)
-    // // {
-    // //     if(ticket <= (it)->priority)
-    // //         break;
-        
-    // //     ticket -= (it)->priority;
-    // // }
-
+    
     return it;
 }
 
@@ -99,7 +90,7 @@ void scheduler_handler(registers_t* regs)
 
 process_t* process_obj_create()
 {
-    return HH_ADDR(fetch_pool(task_allocator));
+    return HH_ADDR(pool_fetch(task_allocator));
 }
 
 void schedule_process(process_t* process)
