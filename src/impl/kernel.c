@@ -1,7 +1,6 @@
 #include "kernel.h"
 #include "devmgr.h"
 #include "print.h"
-#include "limine.h"
 
 void debug_char_output(uint8_t c) { out_serial(COM1, c); }
 
@@ -18,14 +17,15 @@ void initialize()
 
     init_pic();
     init_pit();
-    init_keyboard();
-    init_memory_manager(); 
-    init_virtual_memory();
-
+    // init_keyboard();
+    init_memory_manager();
+    
     init_syscall();
     init_scheduler();
     init_devices();
     init_serial_devices();
+
+    init_pci();
 }
 
 void kernel_start(void)
@@ -41,7 +41,7 @@ void kernel_start(void)
         for(;;)
         {
             if(sdev->read(dev, &item, 0, 1))
-                print_fmt("{char}", item);
+                sdev->write(dev, &item, 0, 1);
         }
     }
 

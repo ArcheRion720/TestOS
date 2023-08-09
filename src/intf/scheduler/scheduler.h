@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include "linked_list.h"
 #include "scheduler/rng.h"
-#include "memory/pmm.h"
+#include "memory_mgmt.h"
 #include "registers.h"
 
 struct process
@@ -12,7 +12,7 @@ struct process
     uint64_t quants;
     uint16_t pcid;
     registers_t registers;
-    pool_allocator_t* page_allocator;
+    struct pool_allocator* page_allocator;
 };
 typedef struct process process_t;
 

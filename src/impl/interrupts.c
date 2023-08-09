@@ -1,7 +1,7 @@
 #include "interrupts.h"
 #include "hal.h"
 #include "gdt.h"
-#include "memory/vmm.h"
+#include "memory_mgmt.h"
 
 static idtr_descriptor_t IDT[256];
 static isr_t handlers[256];

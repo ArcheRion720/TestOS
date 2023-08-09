@@ -1,68 +1,13 @@
-#include <stddef.h>
-#include "memory/pmm.h"
-#include "memory/vmm.h"
+#include "memory_mgmt.h"
 #include "utils.h"
-#include "limine.h"
-#include "utils.h"
-#include "print.h"
 
-extern struct limine_memmap_request mmap_request;
-extern struct limine_hhdm_request hhdm_request;
+#define PMM_BLOCKS_LIMIT ((PMM_PAGE_SIZE - sizeof(struct memory_area)) / (sizeof(struct memory_block)))
 
-static uint64_t usable_memory = 0;
-static memory_area_ptr memory_head = 0;
-static pool_allocator_t allocators;
-
-void print_mem_entry(struct limine_memmap_entry* e)
-{
-    print_fmt("Base: {xlong}\tLength: {xlong}\tType: {long}", &e->base, &e->length, &e->type);
-}
-
-void init_memory_manager()
-{
-    register_print_format("mem", print_mem_entry);
-
-    if(mmap_request.response == NULL || mmap_request.response->entry_count == 0)
-        return;
-
-    memory_area_ptr current = 0;
-    memory_area_ptr previous = 0;
-
-    struct limine_memmap_entry* entry;
-    for(uint64_t i = 0; i < mmap_request.response->entry_count; i++)
-    {
-        entry = mmap_request.response->entries[i];
-
-        print_fmt("{mem}\n", entry);
-
-        if(entry->type != LIMINE_MEMMAP_USABLE)
-            continue;
-
-        if(SIZE_IN_PAGES(entry->length) < 2)
-            continue;
-
-        current = (memory_area_ptr)entry->base;
-        current->pages_total = SIZE_IN_PAGES(entry->length) - 1;
-        current->pages_used = 0;
-        current->block_count = 1;
-        current->blocks[0].size = current->pages_total;
-        current->blocks[0].used = PMM_BLOCK_FREE;
-
-        if(previous)
-            previous->next = HH_ADDR(current);
-        else
-            memory_head = HH_ADDR(current);
-
-        usable_memory += (current->pages_total * PMM_PAGE_SIZE);
-        previous = current;
-    }
-
-    pool_allocator_create(&allocators, sizeof(pool_allocator_t), PMM_PAGE_SIZE);
-}
+memory_area_ptr memory_head = 0;
 
 void* malloc(uint64_t size)
 {
-    uint32_t req_pages = SIZE_IN_PAGES(ALIGN_UP(size, PMM_PAGE_SIZE));
+    uint32_t req_pages = PMM_SIZE_PAGES(ALIGN_UP(size, PMM_PAGE_SIZE));
     uint32_t pages_offset;
 
     for(memory_area_ptr ma = memory_head; LH_ADDR(ma); ma = ma->next)
@@ -103,6 +48,7 @@ void* malloc(uint64_t size)
 
     return 0;
 }
+
 
 uint8_t ptr_in_area_range(memory_area_ptr ma, uintptr_t addr)
 {
@@ -163,74 +109,4 @@ void free(void* ptr)
                 return;
         }
     }
-}
-
-void pool_allocator_create(pool_allocator_t* allocator, uint32_t item_size, uint32_t mem_size)
-{
-    void* block = HH_ADDR(malloc(mem_size));
-    
-    item_size = ALIGN_UP(item_size, 8);
-    uint32_t items_count = mem_size / item_size;
-
-    allocator->items.next = &allocator->items;
-    allocator->items.prev = &allocator->items;
-
-    // *((struct link*)block) = LINKED_LIST(((struct link*)block)[0]);
-    for(uint32_t i = 0; i < items_count; i++)
-    {
-        struct link* item = (struct link*)((uintptr_t)block + (i * item_size));
-        linked_list_add_forward(item, &allocator->items);
-    }
-
-    allocator->size = items_count;
-    allocator->used = 0;
-    allocator->item_size = item_size;
-}
-
-pool_allocator_t* pool_allocator_acquire(uint32_t item_size, uint32_t mem_size)
-{
-    pool_allocator_t* result = (pool_allocator_t*)HH_ADDR(pool_fetch(&allocators));
-
-    if(result == 0)
-        return 0;
-
-    pool_allocator_create(result, item_size, mem_size);
-    return result;
-}
-
-void pool_allocator_dispose(pool_allocator_t* allocator)
-{
-    pool_drop(&allocators, allocator);
-}
-
-void* pool_fetch(pool_allocator_t* alloc)
-{
-    if(alloc->used == alloc->size)
-    {
-        __builtin_trap();
-    }
-
-    struct link* it;
-    linked_list_foreach_link(it, &alloc->items)
-    {
-        linked_list_remove(it);
-        alloc->used++;
-        return LH_ADDR(it);
-    }
-
-
-    __builtin_trap();
-    return 0;
-}
-
-void* pool_fetch_zero(pool_allocator_t* alloc)
-{
-    void* ptr = pool_fetch(alloc);
-    memset(HH_ADDR(ptr), 0, alloc->item_size);
-    return ptr;
-}
-
-void pool_drop(pool_allocator_t* alloc, void* item)
-{
-    linked_list_add_forward(&item, &alloc->items);
 }

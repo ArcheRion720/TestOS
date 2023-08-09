@@ -7,7 +7,7 @@ uint32_t strlen(const uint8_t* str)
     while(str[result++] != '\0')
         continue;
 
-    return result - 1;
+    return result;
 }
 
 uint8_t str_starts(string_t string, uint8_t test)

@@ -1,8 +1,7 @@
 #include "ringbuf.h"
-#include "memory/pmm.h"
-#include "memory/vmm.h"
+#include "memory_mgmt.h"
 
-static pool_allocator_t* ringbuffer_alloc = 0; 
+static struct pool_allocator* ringbuffer_alloc = 0; 
 
 struct ringbuffer_meta* ringbuffer_create(uint64_t size)
 {
@@ -40,7 +39,21 @@ void ringbuffer_destroy(struct ringbuffer_meta* meta)
     pool_drop(ringbuffer_alloc, meta);
 }
 
-uint64_t ringbuffer_read(struct ringbuffer_meta* meta, uint8_t* buffer, uint64_t max_length)
+uint8_t ringbuffer_read(struct ringbuffer_meta* meta)
+{
+    uint8_t result;
+    if(meta->last_read != meta->last_write)
+    {
+        if(meta->last_read >= meta->size)
+            meta->last_read -= meta->size;
+
+        return meta->data[meta->last_read++];
+    }
+
+    return 0;
+}
+
+uint64_t ringbuffer_read_buffer(struct ringbuffer_meta* meta, uint8_t* buffer, uint64_t max_length)
 {
     uint64_t read = 0;
     while(meta->last_read != meta->last_write && read < max_length)

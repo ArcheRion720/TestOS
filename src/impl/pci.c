@@ -1,134 +1,135 @@
 #include "pci.h"
 #include "hal.h"
-#include "memory/pmm.h"
+#include "memory_mgmt.h"
 #include "utils.h"
+#include "print.h"
+#include "devmgr.h"
 
-static pci_t* pci;
+static struct pool_allocator* pci_header_allocator;
 
-uint16_t pci_config_read(uint8_t bus, uint8_t device, uint8_t function, uint8_t offset)
+static inline uint32_t pci_data_address(uint32_t bus, uint32_t device, uint32_t function, uint32_t offset)
 {
-    uint32_t lbus = (uint32_t)bus;
-    uint32_t ldevice = (uint32_t)device;
-    uint32_t lfunction = (uint32_t)function;
-
-    uint32_t addr = (uint32_t)((lbus << 16) | (ldevice << 11) | (lfunction << 8) | (offset & 0xFC) | ((uint32_t)0x80000000));
-
-    outport32(PCI_CONFIG_ADDR, addr);
-    uint16_t result = (uint16_t)((inport32(PCI_CONFIG_DATA) >> ((offset & 2) * 8)) & 0xFFFF);
-    return result;
+    return (bus << 16) | (device << 11) | (function << 8) | (offset & 0xFC) | (1l << 31);
 }
 
-#define PCI_READ(offset) pci_config_read(bus, device, function, offset)
-
-void check_function(uint8_t bus, uint8_t device, uint8_t function)
+uint32_t pci_config_read(uint8_t bus, uint8_t device, uint8_t function, uint8_t offset)
 {
-    pci_entry_t* func = &(pci->busses[bus].devices[device].functions[function]);
-
-    func->num.bus = bus;
-    func->num.device = device;
-    func->num.function = function;
-
-    //log("Registered PCI device at: %ixb:%ixb:%ixb (%ixw : %ixw)", bus, device, function, PCI_READ(0), PCI_READ(2));
-
-    func->header.vendor             = PCI_READ(0);
-    func->header.device             = PCI_READ(2);
-    func->header.command            = PCI_READ(4);
-    func->header.status             = PCI_READ(6);
-    func->header.revision           = (uint8_t) PCI_READ(8);
-    func->header.prog_if            = PCI_READ(8) >> 8;
-    func->header.subclass_code      = (uint8_t) PCI_READ(10);
-    func->header.class_code         = PCI_READ(10) >> 8;
-    func->header.cache_line_size    = (uint8_t) PCI_READ(12);
-    func->header.latency_timer      = PCI_READ(12) >> 8;
-    func->header.header_type        = PCI_READ(14);
-    func->header.bist               = PCI_READ(14) >> 8;
-    func->header.bar[0]             = PCI_READ(16) | (PCI_READ(18) << 16);
-    func->header.bar[1]             = PCI_READ(20) | (PCI_READ(22) << 16);
-    func->header.bar[2]             = PCI_READ(24) | (PCI_READ(26) << 16);
-    func->header.bar[3]             = PCI_READ(28) | (PCI_READ(30) << 16);
-    func->header.bar[4]             = PCI_READ(32) | (PCI_READ(34) << 16);
-    func->header.bar[5]             = PCI_READ(36) | (PCI_READ(38) << 16);
-    func->header.cis_pointer        = PCI_READ(40) | (PCI_READ(42) << 16);
-    func->header.subsystem_vendor   = PCI_READ(44);
-    func->header.subsystem          = PCI_READ(46);
-    func->header.expansion_rom      = PCI_READ(48) | (PCI_READ(50) << 16);
-    func->header.capabilities       = PCI_READ(52);
-    func->header.interrupt_line     = (uint8_t) PCI_READ(60);
-    func->header.interrupt_pin      = PCI_READ(60) >> 8;
-    func->header.min_grant          = (uint8_t) PCI_READ(62);
-    func->header.max_latency        = PCI_READ(62) >> 8;
+    outport32(PCI_CONFIG_ADDR, pci_data_address(bus, device, function, offset));
+    return inport32(PCI_CONFIG_DATA);
 }
 
-void check_device(uint8_t bus, uint8_t device)
+struct pci_header pci_read_common_header(uint8_t bus, uint8_t device, uint8_t function)
 {
-    uint8_t function = 0;
-    uint16_t vendor = PCI_READ(0);
+    union 
+    {
+        uint32_t words[4];
+        struct pci_header header;
+    } 
+    data;
 
-    if(vendor == 0xFFFF)
+    data.words[0] = pci_config_read(bus, device, function, 0x0);
+    data.words[1] = pci_config_read(bus, device, function, 0x4);
+    data.words[2] = pci_config_read(bus, device, function, 0x8);
+    data.words[3] = pci_config_read(bus, device, function, 0xC);
+
+    return data.header;
+}
+
+struct pci_header pci_read_header(uint8_t bus, uint8_t device, uint8_t function)
+{
+    union 
+    {
+        uint32_t words[72];
+        struct pci_header header;
+    } 
+    data;
+
+    data.header = pci_read_common_header(bus, device, function);
+
+    uint32_t limit = ((PCI_HEADER_TYPE(data.header)) == 0x2) ? 0x44 : 0x3C;
+    uint32_t index = 4;
+    for(uint8_t offset = 0x10; offset <= limit; offset += 0x4)
+    {
+        data.words[index++] = pci_config_read(bus, device, function, offset);
+    }
+
+    return data.header;
+}
+
+void pci_scan_function(uint8_t bus, uint8_t device, uint8_t func);
+
+void pci_scan_bus(uint8_t bus)
+{
+    for(uint8_t dev = 0; dev < 32; dev++)
+        pci_scan_device(bus, dev);
+}
+
+void pci_scan_device(uint8_t bus, uint8_t device)
+{
+    struct pci_header header = pci_read_common_header(bus, device, 0);
+    if(header.vendor == PCI_INVALID)
         return;
 
-    check_function(bus, device, function);
-    uint8_t header = (uint8_t) PCI_READ(14);
-
-    if((header & 0x80) != 0)
+    pci_scan_function(bus, device, 0);
+    if(PCI_IS_MULTI_FUNC(header))
     {
-        for(function = 1; function < 8; function++)
+        for(uint8_t func = 1; func < 8; func++)
         {
-            vendor = PCI_READ(0);
-            if(vendor != 0xFFFF)
-                check_function(bus, device, function);
+            header = pci_read_common_header(bus, device, func);
+            if(header.vendor != PCI_INVALID)
+                pci_scan_function(bus, device, func);
         }
     }
 }
 
-void check_bus(uint8_t bus)
+void pci_scan_function(uint8_t bus, uint8_t device, uint8_t func)
 {
-    for(uint8_t device = 0; device < 32; device++)
-    {
-        check_device(bus, device);
-    }
+    struct pci_header header = pci_read_header(bus, device, func);
 
-    // log("Initialised PCI at bus %iu", bus);
+    switch(PCI_HEADER_TYPE(header))
+    {
+        case PCI_HEADER_PCI_BRIDGE:
+            print_fmt("Found bridge at {xbyte}:{xbyte}:{xbyte}\n", &bus, &device, &func);
+            print_fmt("\t{xbyte}-{xbyte}-{xbyte}\n", &header.type1.primary_bus, &header.type1.secondary_bus, &header.type1.subordinate_bus);
+            if((header.class == 0x6) && (header.subclass == 0x4))
+            {
+                pci_scan_bus(header.type1.secondary_bus);
+            }
+            return;
+
+        case PCI_HEADER_DEV:
+        {
+            // print_fmt("Registered device at {xbyte}:{xbyte}:{xbyte}\n", &bus, &device, &func);
+            // print_fmt("\t{xbyte} | {xbyte} | {xbyte}\n", &header.class, &header.subclass, &header.progif);
+            struct device_meta* meta = device_register("PCI device");
+            meta->device_type = DEV_PCI;
+            meta->assoc_dev = HH_ADDR(pool_fetch(pci_header_allocator));
+            *((struct pci_header*)meta->assoc_dev) = header;
+            return;
+        }
+        case PCI_HEADER_CARDBUS_BRIDGE:
+            __builtin_trap();
+            return;
+    }
 }
 
 void init_pci()
 {
-    pci = (pci_t*)malloc(sizeof(pci_t));
-    check_bus(0);
-}
+    pci_header_allocator = pool_allocator_acquire(sizeof(struct pci_header), PMM_PAGE_SIZE);
+    struct pci_header header = pci_read_common_header(0, 0, 0);
 
-#undef PCI_READ
-
-pci_entry_t* pci_get_function(uint8_t class, uint8_t subclass, uint8_t prog)
-{
-    for(int bus = 0; bus < 256; bus++)
+    if(PCI_IS_MULTI_FUNC(header))
     {
-        for(int device = 0; device < 32; device++)
+        for(uint8_t func = 0; func < 8; func++)
         {
-            for(int function = 0; function < 8; function++)
-            {
-                pci_entry_t* func = &(pci->busses[bus].devices[device].functions[function]);
-                if(func->header.class_code == 0xFF || func->header.class_code == 0)
-                    continue;
-                
-                if(func->header.class_code == class || func->header.class_code == (uint8_t)-1)
-                {
-                    if(func->header.subclass_code == subclass || func->header.subclass_code == (uint8_t)-1)
-                    {
-                        if(func->header.prog_if == prog || func->header.prog_if == (uint8_t)-1)
-                        {
-                            return func;
-                        }
-                    }
-                }
-            }
+            if(pci_read_header(0, 0, func).vendor == PCI_INVALID)
+                continue;
+
+            pci_scan_bus(func);
         }
     }
-
-    return 0x0;
-}
-
-pci_entry_t* read_entry(uint8_t bus, uint8_t device, uint8_t function)
-{
-    return &(pci->busses[bus].devices[device].functions[function]);
+    else
+    {
+        pci_scan_bus(0);
+    }
 }

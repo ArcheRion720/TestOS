@@ -14,11 +14,28 @@ struct serial_device_data
 {
     uint16_t irq;
     uint16_t port;
+    uint16_t transmitter_state;
     struct ringbuffer_meta* in_buffer;
     struct ringbuffer_meta* out_buffer;
+    struct stream_device device;
 };
 
 static struct serial_device_data serial_dev_data[4];
+
+static inline serial_can_read(uint16_t com_port)
+{
+    return inport8(COM_LINE_STATUS(com_port)) & COM_LINE_READY;
+}
+
+static inline serial_can_write(uint16_t com_port)
+{
+    return inport8(COM_LINE_STATUS(com_port)) & COM_LINE_FREE; 
+}
+
+static inline serial_transmitter_empty(uint16_t com_port)
+{
+    return inport8(COM_LINE_STATUS(com_port)) & COM_LINE_BUFEMPT;
+}
 
 uint8_t serial_port_probe(uint16_t com)
 {
@@ -41,7 +58,7 @@ uint8_t serial_port_probe(uint16_t com)
 
 void serial_enable_interrupts(uint16_t com)
 {
-    outport8(COM_INTERRUPT(com), (1 << 0));
+    outport8(COM_INTERRUPT(com), 1);
 }
 
 uintmax_t serial_write(struct device_meta* dev, uint8_t* ubuffer, uintmax_t offset, uintmax_t size)
@@ -52,7 +69,22 @@ uintmax_t serial_write(struct device_meta* dev, uint8_t* ubuffer, uintmax_t offs
     struct stream_device* sdev = (struct stream_device*)dev->assoc_dev;
     struct serial_device_data* data = (struct serial_device_data*)sdev->private_data;
 
-    return ringbuffer_write_buffer(data->out_buffer, ubuffer, size);
+    uintmax_t written = 0;
+    written = ringbuffer_write_buffer(data->out_buffer, ubuffer, size);
+
+    if(written < size)
+    {
+        serial_flush(dev);
+        return written;
+    }
+
+    uint8_t c;
+    if(written > 0 && (c = ringbuffer_read(data->out_buffer)))
+    {
+        outport8(data->port, c);
+    }
+
+    return written;
 }
 
 uintmax_t serial_read(struct device_meta* dev, uint8_t* ubuffer, uintmax_t offset, uintmax_t size)
@@ -64,17 +96,7 @@ uintmax_t serial_read(struct device_meta* dev, uint8_t* ubuffer, uintmax_t offse
     struct stream_device* sdev = (struct stream_device*)dev->assoc_dev;
     struct serial_device_data* data = (struct serial_device_data*)sdev->private_data;
 
-    return ringbuffer_read(data->in_buffer, ubuffer, size);
-}
-
-static inline serial_can_read(uint16_t com_port)
-{
-    return inport8(COM_LINE_STATUS(com_port)) & COM_LINE_READY;
-}
-
-static inline serial_can_write(uint16_t com_port)
-{
-    return inport8(COM_LINE_STATUS(com_port)) & COM_LINE_FREE; 
+    return ringbuffer_read_buffer(data->in_buffer, ubuffer, size);
 }
 
 void serial_interrupt(registers_t* regs)
@@ -89,10 +111,10 @@ void serial_interrupt(registers_t* regs)
             ringbuffer_write(serial_dev_data[i].in_buffer, inport8(serial_dev_data[i].port))
         );
 
-        uint64_t buffer = 0;
+        uint8_t buffer = 0;
         while(serial_can_write(serial_dev_data[i].port))
         {
-            if(!ringbuffer_read(serial_dev_data[i].out_buffer, &buffer, 1))
+            if(!ringbuffer_read_buffer(serial_dev_data[i].out_buffer, &buffer, 1))
                 break;
 
             outport8(serial_dev_data[i].port, buffer);
@@ -121,17 +143,20 @@ void init_serial_devices()
     const uint16_t com_ports[] = {0x3F8, 0x2F8, 0x3E8, 0x2E8};
     const uint8_t* com_names[] = {"COM1", "COM2", "COM3", "COM4"};
 
-    struct 
+    struct
     {
         uint8_t irq3_enable;
         uint8_t irq4_enable;
-    } irqs;
+    } irqs = {0, 0};
 
     for(uint32_t i = 0; i < 4; i++)
     {
         if(serial_port_probe(com_ports[i]))
         {
-            struct device_meta* com_dev = stream_device_register(com_names[i]);
+            struct device_meta* com_dev = device_register(com_names[i]);
+            com_dev->assoc_dev = &serial_dev_data[i].device;
+            com_dev->device_type = DEV_STREAM;
+
             struct stream_device* com_stream = (struct stream_device*)com_dev->assoc_dev;
 
             com_dev->owner = SERIAL_DRV_ID;
@@ -166,8 +191,10 @@ void init_serial_devices()
                 continue;
             }
             serial_dev_data[i].out_buffer = rb_out;
+            serial_dev_data[i].transmitter_state = serial_transmitter_empty(com_ports[i]);
 
-            com_stream->read = &serial_read;
+            com_stream->read  = &serial_read;
+            com_stream->write = &serial_write;
             com_stream->flush = &serial_flush;
             serial_enable_interrupts(com_ports[i]);
         }

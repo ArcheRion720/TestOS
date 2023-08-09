@@ -1,16 +1,13 @@
 #include "scheduler/scheduler.h"
-#include "memory/pmm.h"
-#include "memory/vmm.h"
+#include "memory_mgmt.h"
 #include "linked_list.h"
 #include "interrupts.h"
 #include "gdt.h"
 #include "capabilities.h"
-
 #include "print.h"
-
 #include "hal.h"
 
-static pool_allocator_t* task_allocator;
+static struct pool_allocator* task_allocator;
 static linked_list_head(tasks);
 static scheduler_state_t scheduler;
 
@@ -21,7 +18,7 @@ void init_scheduler()
 {
     task_allocator = pool_allocator_acquire(sizeof(process_t), sizeof(process_t) * 200);
     scheduler.rng_state = 9223372036854775810ULL;
-        
+
     process_t* idle_task = (process_t*)HH_ADDR(pool_fetch_zero(task_allocator));
     idle_task->priority = 1;
     idle_task->registers.cs = GDT_SEGMENT_OFFSET(GDT_CS0_64);
@@ -69,11 +66,11 @@ void scheduler_handler(registers_t* regs)
     if(scheduler.current != 0 && scheduler.current->pcid == next->pcid)
         return;
 
-    vmm_load_memmap(next->registers.cr3);
+    vmm_load_map(next->registers.cr3);
 
     if(scheduler.current != 0)
     {
-        vmm_invalidate_desc_t inv_desc = {
+        struct vmm_invalidate_desc inv_desc = {
             .addr = 0,
             .pcid = scheduler.current->pcid
         };

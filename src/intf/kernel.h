@@ -5,8 +5,6 @@
 #include "terminal.h"
 #include "hal.h"
 #include "gdt.h"
-#include "memory/pmm.h"
-#include "memory/vmm.h"
 #include "pic.h"
 #include "pit.h"
 #include "ps2.h"
@@ -16,5 +14,6 @@
 #include "syscall.h"
 #include "elf.h"
 #include "scheduler/scheduler.h"
+#include "memory_mgmt.h"
 
 void kernel_start();

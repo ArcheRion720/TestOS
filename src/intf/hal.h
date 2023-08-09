@@ -34,9 +34,6 @@
 #define COM_LINE_FREE    (1 << 6)
 #define COM_LINE_ERRORIM (1 << 7)
 
-#define PCI_CONFIG_ADDR 0xCF8
-#define PCI_CONFIG_DATA 0xCFC
-
 #define RTC_REGISTER_A 0x0A
 #define RTC_REGISTER_B 0x0B
 #define RTC_REGISTER_C 0x0C
