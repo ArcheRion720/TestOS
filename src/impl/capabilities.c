@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <cpuid.h>
 
-uint32_t cpu_cpuid_capabilities[9];
+uint32_t cpu_cpuid_capabilities[11];
 uint32_t cpu_version;
 
 void read_cpu_features()
@@ -35,5 +35,11 @@ void read_cpu_features()
     if(__get_cpuid_count(7, 2, &eax, &ebx, &ecx, &edx))
     {
         cpu_cpuid_capabilities[8] = edx;
+    }
+
+    if(__get_cpuid(0x80000001, &eax, &ebx, &ecx, &edx))
+    {
+        cpu_cpuid_capabilities[9] = ecx;
+        cpu_cpuid_capabilities[10] = edx;
     }
 }

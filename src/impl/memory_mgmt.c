@@ -5,7 +5,7 @@
 #include "print.h"
 
 uintptr_t hhdm;
-uintptr_t vmm_kernel_map[512];
+extern uintptr_t* vmm_kernel_map;
 
 static uint64_t usable_memory = 0;
 extern memory_area_ptr memory_head;
@@ -16,7 +16,6 @@ extern struct limine_hhdm_request hhdm_request;
 extern struct limine_kernel_address_request kernel_addr_request;
 
 extern struct pool_allocator pmm_allocators;
-extern uintptr_t kernel_mappings[512];
 
 extern uint8_t kaddr_end[], kaddr_start[];
 
@@ -76,11 +75,11 @@ void vmm_init()
     desc.pcid = 0;
     desc.flags = VMM_FLAG_GLOBAL | VMM_FLAG_READ_WRITE;
 
-    for(uintptr_t addr = 0x0; addr < (VMM_SIZE_GB * 16); addr += VMM_SIZE_GB)
+    desc.size = VMM_SIZE_GB;
+    for(uintptr_t addr = 0x0; addr < (VMM_SIZE_GB * 32ull); addr += VMM_SIZE_GB)
     {
         desc.paddr = addr;
         desc.vaddr = HH_ADDR(addr);
-        desc.size = VMM_SIZE_GB;
 
         vmm_map(desc, pmm_kernel_allocator);
     }
@@ -97,6 +96,8 @@ void vmm_init()
         vmm_map(desc, pmm_kernel_allocator);
     }
 
+    vmm_kernel_map = pml4_alloc;
+
     if(CPU_CAPABILITY_PCID_PRESENT && CPU_CAPABILITY_INVPCID_PRESENT)
     {
         uint64_t cr4;
@@ -105,6 +106,8 @@ void vmm_init()
         __asm__ volatile("mov %0, %%cr4" :: "r"(cr4));
         pcid_enabled = 1;
     }
+
+    vmm_load_map(vmm_kernel_map);
 }
 
 void init_memory_manager()

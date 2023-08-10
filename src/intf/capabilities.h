@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 
-extern uint32_t cpu_cpuid_capabilities[9];
+extern uint32_t cpu_cpuid_capabilities[11];
 extern uint32_t cpu_version;
 
 /*
@@ -15,15 +15,18 @@ extern uint32_t cpu_version;
     6       CPUID.07.01.EBX
     7       CPUID.07.01.EDX
     8       CPUID.07.02.EDX
+    9       CPUID.80000001h.ECX
+    10      CPUID.80000001h.EDX
 */
 #define __CPU_CAPABILITY_PRESENT(PAGE, FEATURE) (cpu_cpuid_capabilities[(PAGE)] & (FEATURE))
 
-#define CPU_CAPABILITY_APIC_PRESENT     __CPU_CAPABILITY_PRESENT(0, 1 << 9)
-#define CPU_CAPABILITY_SEP_PRESENT      __CPU_CAPABILITY_PRESENT(0, 1 << 11)
-#define CPU_CAPABILITY_PCID_PRESENT     __CPU_CAPABILITY_PRESENT(1, 1 << 17)
-#define CPU_CAPABILITY_NX_PRESENT       __CPU_CAPABILITY_PRESENT(0, 1 << 20)
-#define CPU_CAPABILITY_RDRAND_PRESENT   __CPU_CAPABILITY_PRESENT(1, 1 << 30)
-#define CPU_CAPABILITY_INVPCID_PRESENT  __CPU_CAPABILITY_PRESENT(2, 1 << 10)
+#define CPU_CAPABILITY_APIC_PRESENT     __CPU_CAPABILITY_PRESENT(0,  1 << 9)
+#define CPU_CAPABILITY_SEP_PRESENT      __CPU_CAPABILITY_PRESENT(0,  1 << 11)
+#define CPU_CAPABILITY_PCID_PRESENT     __CPU_CAPABILITY_PRESENT(1,  1 << 17)
+#define CPU_CAPABILITY_NX_PRESENT       __CPU_CAPABILITY_PRESENT(10, 1 << 20)
+#define CPU_CAPABILITY_RDRAND_PRESENT   __CPU_CAPABILITY_PRESENT(1,  1 << 30)
+#define CPU_CAPABILITY_INVPCID_PRESENT  __CPU_CAPABILITY_PRESENT(2,  1 << 10)
+#define CPU_CAPABILITY_GIGAPAGE_PRESENT __CPU_CAPABILITY_PRESENT(10, 1 << 26)
 
 #define CPU_FAMILY_ID   ((cpu_version >> 8) & 0xF)
 #define CPU_STEPPING    (cpu_version & 0xF)

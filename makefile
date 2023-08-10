@@ -23,7 +23,7 @@ INTERNALCFLAGS :=			\
 	-mmanual-endbr			\
 	-mgeneral-regs-only		\
 	-fcf-protection=branch  \
-	-funsigned-char
+	-funsigned-char			
  
 INTERNALLDFLAGS :=			\
 	-nostdlib				\
