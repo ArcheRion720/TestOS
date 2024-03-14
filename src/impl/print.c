@@ -1,7 +1,6 @@
 #include <stdarg.h>
 #include "print.h"
-#include "terminal.h"
-#include "hal.h"
+#include "x86/hal.h"
 
 #define HEX_FORMAT_8  0
 #define HEX_FORMAT_16 1
@@ -112,8 +111,6 @@ void print_hex(uint8_t hex_size, uintmax_t value)
     {
         print_char_function(((uint8_t*)buffer)[i]);
     }
-
-    // terminal_write((uint8_t*)&buffer, 1 << (hex_size + 1));
 }
 
 void print_u8(uint8_t* num)   { print_uns((uintmax_t)*num); }

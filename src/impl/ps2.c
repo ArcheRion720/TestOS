@@ -1,6 +1,6 @@
 #include "ps2.h"
-#include "hal.h"
-#include "interrupts.h"
+#include "x86/hal.h"
+#include "x86/interrupts.h"
 #include "utils.h"
 
 uint8_t lastKey = 0;
@@ -12,7 +12,6 @@ void init_keyboard()
 {
     register_isr_handler(33, (isr_t)&keyboard_handler);
     keyboard_status = 1;
-    // log("Initialised PS2");
 }
 
 uint8_t keyboard_enabled()

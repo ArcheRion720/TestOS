@@ -1,5 +1,5 @@
 #include "memory_mgmt.h"
-#include "capabilities.h"
+#include "x86/capabilities.h"
 #include "utils.h"
 #include "boot_request.h"
 #include "print.h"
@@ -117,5 +117,6 @@ void init_memory_manager()
     pmm_init();
     pool_allocator_create(&pmm_allocators, sizeof(struct pool_allocator), PMM_PAGE_SIZE);
     pmm_kernel_allocator = pool_allocator_acquire(PMM_PAGE_SIZE, 0xF00000);
+    pmm_kernel_heap = buddy_create();
     vmm_init();
 }

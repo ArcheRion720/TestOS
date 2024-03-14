@@ -1,12 +1,7 @@
 #pragma once
+#include "structutil.h"
 
-#define offset_of(type, member) ((uintptr_t) &((type*)0)->member)
-#define container_of(ptr, type, member) ({               \
-    const typeof(((type*)0)->member) *__ptr = (ptr);     \
-    (type*)((uintptr_t)__ptr - offset_of(type, member)); \
-})
-
-#define linked_list_init(item) { &(item), &(item) }
+#define linked_list_init(item) (struct link){ &(item), &(item) }
 #define linked_list_head(item) struct link item = linked_list_init(item)
 
 #define linked_list_foreach(iterator, head, member) \

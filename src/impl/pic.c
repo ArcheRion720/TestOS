@@ -1,5 +1,5 @@
-#include "pic.h"
-#include "hal.h"
+#include "x86/pic.h"
+#include "x86/hal.h"
 #include "print.h"
 
 void init_pic()

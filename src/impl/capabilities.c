@@ -1,4 +1,4 @@
-#include "capabilities.h"
+#include "x86/capabilities.h"
 #include "print.h"
 
 #include <stdint.h>

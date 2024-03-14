@@ -28,14 +28,3 @@ user_jmp:
     push 0x30 | 3
     push rsi ;rip
     iretq
-
-;user_jmp:
-;    mov ax, 0x38 | 3
-;    mov ds, ax
-;    mov es, ax
-;    mov fs, ax
-;    mov gs, ax
-;
-;    mov rdx, rdi
-;    mov rcx, rsi
-;    o64 sysexit

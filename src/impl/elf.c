@@ -170,3 +170,49 @@ uintptr_t load_elf(elf_header_t* elf, process_t* process)
 
     return elf->entry;
 }
+
+uint8_t* elf_resolve_func_symbol(elf_header_t* elf, uintptr_t sym_addr)
+{
+    #define ELF_SECT_HEADER(idx) ((uintptr_t)elf + (uintptr_t)elf->sh_off + (elf->sh_ent_size * idx))
+    elf_section_header_t* sym_tab = 0;
+    for(uint32_t i = 0; i < elf->sh_num; i++)
+    {
+        elf_section_header_t* sh = ELF_SECT_HEADER(i);
+
+        if(sh->type == ELF_SH_TYPE_SYMTAB)
+        {
+            sym_tab = sh;
+            continue;
+        }
+    }
+
+    if(!sym_tab)
+        return 0;
+
+    uintptr_t symbol_table_off = (uintptr_t)elf + (uintptr_t)sym_tab->offset;
+
+    elf_symbol_t* found = 0;
+
+    for(uintptr_t sym = symbol_table_off;
+        sym < symbol_table_off + sym_tab->size;
+        sym += sizeof(elf_symbol_t))
+    {
+        elf_symbol_t* symbol = (elf_symbol_t*)sym;
+        if(ELF_SYM_TYPE(symbol->info) != ELF_SYM_TYPE_FUNC)
+            continue;
+
+        if((sym_addr > symbol->value) && (sym_addr < symbol->value + symbol->size))
+        {
+            found = symbol;
+            break;
+        }
+    }
+
+    if(!found)
+        return 0;
+
+    char* str = (uintptr_t)elf + (uintptr_t)((elf_section_header_t*)ELF_SECT_HEADER(sym_tab->link))->offset;
+    return &str[found->name];
+
+    #undef ELF_SECT_HEADER
+}

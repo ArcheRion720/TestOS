@@ -1,6 +1,6 @@
 #include "memory_mgmt.h"
 #include "utils.h"
-#include "capabilities.h"
+#include "x86/capabilities.h"
 
 uint8_t pcid_enabled;
 uintptr_t* vmm_kernel_map;

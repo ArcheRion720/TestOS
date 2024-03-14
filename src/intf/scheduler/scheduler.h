@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#include "linked_list.h"
+#include "datastruct/linked_list.h"
 #include "scheduler/rng.h"
 #include "memory_mgmt.h"
 #include "registers.h"

@@ -41,6 +41,34 @@
 #define ELF_PH_FLAG_WRIT    0x2
 #define ELF_PH_FLAG_READ    0x4
 
+#define ELF_SH_TYPE_NULL    0x0
+#define ELF_SH_TYPE_PROGBIT 0x1
+#define ELF_SH_TYPE_SYMTAB  0x2
+#define ELF_SH_TYPE_STRTAB  0x3
+#define ELF_SH_TYPE_RELA    0x4
+#define ELF_SH_TYPE_HASH    0x5
+#define ELF_SH_TYPE_DYNAMIC 0x6
+#define ELF_SH_TYPE_NOTE    0x7
+#define ELF_SH_TYPE_NOBITS  0x8
+#define ELF_SH_TYPE_REL     0x9
+#define ELF_SH_TYPE_DYNSYM  0x0B
+
+#define ELF_SYM_BIND(info)  ((info) >> 4)
+#define ELF_SYM_TYPE(info)  ((info) & 0xF)
+#define ELF_SYM_GLOBAL(oth) ((oth) & 0x3)
+
+#define ELF_SYM_BIND_LOCAL  0
+#define ELF_SYM_BIND_GLOBAL 1
+#define ELF_SYM_BIND_WEAK   2
+
+#define ELF_SYM_TYPE_NOTYPE 0
+#define ELF_SYM_TYPE_OBJECT 1
+#define ELF_SYM_TYPE_FUNC   2
+#define ELF_SYM_TYPE_SECT   3
+#define ELF_SYM_TYPE_FILE   4
+#define ELF_SYM_TYPE_COMMON 5
+#define ELF_SYM_TYPE_TLS    6
+
 #define ELF_STACK_SIZE      0x400000
 
 struct elf_header
@@ -96,4 +124,26 @@ struct elf_section_header
 };
 typedef struct elf_section_header elf_section_header_t;
 
+struct elf_symbol
+{
+    uint32_t name;
+    uint8_t info;
+    uint8_t other;
+    uint16_t shndx;
+    uint64_t value;
+    uint64_t size;
+};
+typedef struct elf_symbol elf_symbol_t;
+
+struct elf_relocation_rel
+{
+
+};
+
+struct elf_relocation_rela
+{
+    
+};
+
 uintptr_t load_elf(elf_header_t* elf, process_t* pml4);
+uint8_t* elf_resolve_func_symbol(elf_header_t* elf, uintptr_t sym_addr);

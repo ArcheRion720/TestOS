@@ -1,19 +1,19 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
-#include "capabilities.h"
-#include "terminal.h"
-#include "hal.h"
-#include "gdt.h"
-#include "pic.h"
+#include "x86/capabilities.h"
+#include "x86/hal.h"
+#include "x86/gdt.h"
+#include "x86/pic.h"
 #include "pit.h"
 #include "ps2.h"
-#include "interrupts.h"
+#include "x86/interrupts.h"
 #include "pci.h"
 #include "rtc.h"
 #include "syscall.h"
 #include "elf.h"
 #include "scheduler/scheduler.h"
 #include "memory_mgmt.h"
+#include "dev_object.h"
 
 void kernel_start();

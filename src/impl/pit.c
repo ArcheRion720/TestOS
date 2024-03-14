@@ -1,7 +1,7 @@
 #include "print.h"
 #include "pit.h"
 #include "utils.h"
-#include "hal.h"
+#include "x86/hal.h"
 
 uint64_t ticks;
 void init_pit()
@@ -14,6 +14,5 @@ void init_pit()
 
     //register_isr_handler(32, &pit_handler);
 
-    //log("Initialised PIT");
     print_fmt("Initialised PIT\n");
 }

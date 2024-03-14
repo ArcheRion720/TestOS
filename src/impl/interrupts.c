@@ -1,7 +1,13 @@
-#include "interrupts.h"
-#include "hal.h"
-#include "gdt.h"
+#include "x86/interrupts.h"
+#include "x86/hal.h"
+#include "x86/gdt.h"
+#include "print.h"
 #include "memory_mgmt.h"
+
+#include "boot_request.h"
+#include "elf.h"
+
+extern struct limine_kernel_file_request kernel_file_request;
 
 static idtr_descriptor_t IDT[256];
 static isr_t handlers[256];
@@ -85,6 +91,29 @@ void register_intdt(uint32_t code, uint64_t addr)
     IDT[code].zerohigh = 0;
 }
 
+static inline void print_symbol(uintptr_t addr)
+{
+    static elf_header_t* elf = 0;
+    if(!elf)
+    {
+        if(kernel_file_request.response)
+            elf = (elf_header_t*)kernel_file_request.response->kernel_file->address;
+        else return;
+    }
+
+    uint8_t* str = elf_resolve_func_symbol(elf, addr);
+    if(str)
+    {
+        print_fmt("<");
+        while(*str)
+        {
+            print_fmt("{char}", *str);
+            str++;
+        }
+        print_fmt(">");
+    }
+}
+
 #define PRINT_REG(x) print_fmt(#x ":\t{xlong}\n", &regs.x);
 
 void isr_handler(registers_t regs)
@@ -111,6 +140,26 @@ void isr_handler(registers_t regs)
         PRINT_REG(es);
         PRINT_REG(fs);
         PRINT_REG(gs);
+
+        struct
+        {
+            struct stack_frame* next;
+            uint64_t rip;
+        } *stack_frame = __builtin_frame_address(1);
+
+        int i = 0;
+        print_fmt("[{int}]: {xlong} ", &i, &regs.rip);
+        print_symbol(regs.rip);
+        print_fmt("\n");
+
+        for(i = 1; stack_frame; i++)
+        {
+            print_fmt("[{int}]: {xlong} ", &i, &stack_frame->rip);
+            print_symbol(stack_frame->rip);
+            print_fmt("\n");
+
+            stack_frame = stack_frame->next;
+        }
 
         __asm__ ("hlt");
     }

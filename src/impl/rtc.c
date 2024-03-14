@@ -1,6 +1,6 @@
 #include "rtc.h"
-#include "hal.h"
-#include "interrupts.h"
+#include "x86/hal.h"
+#include "x86/interrupts.h"
 
 uint8_t binary_read;
 time_t boot_time;

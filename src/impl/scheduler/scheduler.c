@@ -1,11 +1,11 @@
 #include "scheduler/scheduler.h"
 #include "memory_mgmt.h"
-#include "linked_list.h"
-#include "interrupts.h"
-#include "gdt.h"
-#include "capabilities.h"
+#include "datastruct/linked_list.h"
+#include "x86/interrupts.h"
+#include "x86/gdt.h"
+#include "x86/capabilities.h"
 #include "print.h"
-#include "hal.h"
+#include "x86/hal.h"
 
 static struct pool_allocator* task_allocator;
 static linked_list_head(tasks);

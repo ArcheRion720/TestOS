@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#include "string.h"
+#include "datastruct/string.h"
 
 #define register_print_format(fmt, callback) register_print_format_impl(MAKE_STRING(fmt), (void(*)(void*))callback)
 

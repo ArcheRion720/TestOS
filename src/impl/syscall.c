@@ -1,8 +1,8 @@
 #include <stdint.h>
-#include "capabilities.h"
-#include "gdt.h"
+#include "x86/capabilities.h"
+#include "x86/gdt.h"
 #include "syscall.h"
-#include "msr.h"
+#include "x86/msr.h"
 #include "print.h"
 
 static uint8_t syscall_stack[8192];

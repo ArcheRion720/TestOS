@@ -1,9 +1,9 @@
 #include "pci.h"
-#include "hal.h"
+#include "x86/hal.h"
 #include "memory_mgmt.h"
 #include "utils.h"
 #include "print.h"
-#include "devmgr.h"
+#include "dev_object.h"
 
 static struct pool_allocator* pci_header_allocator;
 
@@ -57,6 +57,7 @@ struct pci_header pci_read_header(uint8_t bus, uint8_t device, uint8_t function)
 }
 
 void pci_scan_function(uint8_t bus, uint8_t device, uint8_t func);
+void pci_scan_device(uint8_t bus, uint8_t device);
 
 void pci_scan_bus(uint8_t bus)
 {
@@ -99,16 +100,19 @@ void pci_scan_function(uint8_t bus, uint8_t device, uint8_t func)
 
         case PCI_HEADER_DEV:
         {
-            // print_fmt("Registered device at {xbyte}:{xbyte}:{xbyte}\n", &bus, &device, &func);
-            // print_fmt("\t{xbyte} | {xbyte} | {xbyte}\n", &header.class, &header.subclass, &header.progif);
-            struct device_meta* meta = device_register("PCI device");
-            meta->device_type = DEV_PCI;
-            meta->assoc_dev = HH_ADDR(pool_fetch(pci_header_allocator));
-            *((struct pci_header*)meta->assoc_dev) = header;
+            struct dev_object* obj = dev_object_create();
+            struct dev_object_interface* intf = dev_interface_create(obj, 
+                sizeof(struct dev_object_interface) + 
+                sizeof(struct pci_header));
+            
+            intf->type = DEV_INTERFACE_IDENTIFY_PCI;
+            *(struct pci_header*)(&intf->spec_data) = header;
+
             return;
         }
         case PCI_HEADER_CARDBUS_BRIDGE:
-            __builtin_trap();
+            // __builtin_trap();
+            print_fmt("Found cardbus bridge???\n");
             return;
     }
 }

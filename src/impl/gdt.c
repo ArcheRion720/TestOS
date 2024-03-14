@@ -1,4 +1,4 @@
-#include "gdt.h"
+#include "x86/gdt.h"
 
 extern void reload_gdt_segments();
 

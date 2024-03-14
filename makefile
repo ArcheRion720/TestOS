@@ -11,6 +11,7 @@ INTERNALCFLAGS :=			\
 	-std=gnu11				\
 	-ffreestanding			\
 	-fno-stack-protector	\
+	-fno-omit-frame-pointer	\
 	-pie					\
 	-mno-80387				\
 	-mno-mmx				\

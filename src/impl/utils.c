@@ -1,6 +1,5 @@
 #include "utils.h"
 #include "rtc.h"
-#include "terminal.h"
 #include <stdarg.h>
 
 void str_cpy(uint8_t* src, uint8_t* dest, uint32_t count)
